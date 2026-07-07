@@ -25,3 +25,9 @@ module "bigquery" {
   location   = var.bq_location
   depends_on = [module.project]
 }
+
+module "iam" {
+  source     = "../../modules/iam"
+  project_id = var.project_id
+  depends_on = [module.project]
+}
