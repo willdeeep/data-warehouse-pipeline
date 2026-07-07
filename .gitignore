@@ -1,0 +1,41 @@
+# Python / uv
+__pycache__/
+*.pyc
+.venv/
+uv.lock.bak
+
+# Env & secrets
+.env
+*.env.local
+**/secrets/*.json
+!**/secrets/.gitkeep
+
+# dbt
+pipeline/dbt/target/
+pipeline/dbt/logs/
+pipeline/dbt/dbt_packages/
+.user.yml
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+
+# Airflow / Astro
+logs/
+*.log
+.astro/
+ASTRO_API_TOKEN.txt
+
+# Planning workspace + local agent config (kept untracked)
+.opencode/
+.claude/
+
+# OS / editor
+.DS_Store
+*.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,32 @@
+# This file defines the connection profiles for dbt to connect to your data warehouse.
+# Best practice: Use multiple authentication methods with environment-based fallbacks
+loom:  # Profile name - must match the 'profile' value in dbt_project.yml
+  target: "{{ env_var('DBT_TARGET', 'dev') }}"  # Default environment, can be overridden
+  outputs:
+    dev:  # Development environment      
+      type: bigquery  # We're using BigQuery as our data warehouse
+      method: service-account  # Use service-account with keyfile (not service-account-json)
+      project: "{{ env_var('GCP_PROJECT_ID', 'loom-insights') }}"  # GCP project from environment
+      dataset: "{{ env_var('DBT_DEV_DATASET', 'dev_warehouse') }}"  # Dataset from environment
+      location: "{{ env_var('GCP_REGION', 'US') }}"  # Region from environment
+      threads: "{{ env_var('DBT_THREADS', 4) | as_number }}"  # Threads from environment
+      priority: interactive  # How queries are scheduled in BigQuery
+      job_retries: 1  # Number of times to retry failed queries
+      job_execution_timeout_seconds: 1800  # 30 minutes timeout for BigQuery jobs
+      
+      # Authentication: Use service account key file
+      keyfile: "{{ env_var('GOOGLE_APPLICATION_CREDENTIALS') }}"
+
+    prod:  # Production environment      
+      type: bigquery  # We're using BigQuery as our data warehouse
+      method: service-account  # Use service-account with keyfile (not service-account-json)
+      project: "{{ env_var('GCP_PROJECT_ID', 'loom-insights') }}"  # GCP project from environment
+      dataset: "{{ env_var('DBT_PROD_DATASET', 'warehouse') }}"  # Dataset from environment
+      location: "{{ env_var('GCP_REGION', 'US') }}"  # Region from environment
+      threads: "{{ env_var('DBT_THREADS', 4) | as_number }}"  # Threads from environment
+      priority: batch  # Use batch for production (cost-effective)
+      job_retries: 3  # More retries for production
+      job_execution_timeout_seconds: 3600  # 60 minutes timeout for production
+      
+      # Authentication: Use service account key file
+      keyfile: "{{ env_var('GOOGLE_APPLICATION_CREDENTIALS') }}"

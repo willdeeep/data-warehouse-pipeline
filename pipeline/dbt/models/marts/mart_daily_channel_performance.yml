@@ -1,0 +1,52 @@
+version: 2
+
+models:
+  - name: mart_daily_channel_performance
+    description: >
+      Daily performance mart aggregating advertising, session, and transaction metrics by date, channel, platform, and device. 
+      Includes acquisition, engagement, and revenue KPIs for multi-channel marketing analysis.
+    columns:
+      - name: date
+        description: "Calendar date for the aggregated metrics."
+        tests:
+          - not_null
+      - name: week_number
+        description: "ISO week number extracted from the date."
+      - name: day_of_week
+        description: "Day of the week (e.g., Monday, Tuesday) for the date."
+      - name: month
+        description: "Month of the year for the date."
+      - name: year
+        description: "Year for the date."
+      - name: channel
+        description: "High-level marketing channel type (e.g., Paid Social, Search, DSP)."
+      - name: platform
+        description: "Advertising platform name (e.g., Facebook, Google Ads, TikTok)."
+      - name: clicks
+        description: "Number of ad clicks recorded for the platform and date."
+      - name: device
+        description: "Device type used in the session (e.g., Mobile, Desktop, Tablet)."
+      - name: impressions
+        description: "Number of ad impressions served for the platform and date."
+      - name: ad_spend
+        description: "Total advertising spend for the platform and date."
+      - name: sessions
+        description: "Number of unique sessions for the platform, device, and date."
+      - name: total_users
+        description: "Number of unique users who had a session for the platform, device, and date."
+      - name: new_users
+        description: "Number of users who registered on the given date."
+      - name: bounces
+        description: "Number of sessions where the user bounced (single-page session)."
+      - name: page_views
+        description: "Total number of page views across all sessions."
+      - name: avg_session_duration
+        description: "Average session duration in seconds."
+      - name: transaction_count
+        description: "Number of unique transactions completed."
+      - name: total_revenue
+        description: "Total revenue generated from transactions."
+      - name: item_quantity
+        description: "Total quantity of items sold."
+      - name: item_price_total
+        description: "Total value of items sold (sum of product price times quantity)."

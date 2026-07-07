@@ -1,0 +1,114 @@
+services:
+  airflow-init:
+    build: .
+    restart: "no"
+    user: "astro"
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db init
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
+      - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW__CORE__FERNET_KEY}
+      - AIRFLOW__WEBSERVER__SECRET_KEY=${AIRFLOW__WEBSERVER__SECRET_KEY}
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=True
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=True
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://astro:astro@postgres:5432/astro
+      # GCP and DBT Configuration
+      - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS}
+      - DBT_BIGQUERY_KEYFILE_JSON=${DBT_BIGQUERY_KEYFILE_JSON:-}
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID}
+      - GCP_REGION=${GCP_REGION}
+      - DBT_ROOT_PATH=${DBT_ROOT_PATH}
+      - DBT_TARGET=${DBT_TARGET}
+      - DBT_THREADS=${DBT_THREADS}
+      - DBT_DEV_DATASET=${DBT_DEV_DATASET}
+      - DBT_PROD_DATASET=${DBT_PROD_DATASET}
+      - DBT_PROFILES_DIR=${DBT_PROFILES_DIR}
+    depends_on:
+      - postgres
+    volumes:
+      # Runtime layout finalized in Plan 03 (dbt paths + OAuth) and Plan 05 (orchestration).
+      - ./dags:/opt/airflow/dags
+      - ./dbt:/opt/airflow/dbt
+
+  webserver:
+    build: .
+    container_name: airflow_webserver
+    restart: always
+    user: "astro"
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
+      - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW__CORE__FERNET_KEY}
+      - AIRFLOW__WEBSERVER__SECRET_KEY=${AIRFLOW__WEBSERVER__SECRET_KEY}
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=True
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=True
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://astro:astro@postgres:5432/astro
+      # GCP and DBT Configuration
+      - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS}
+      - DBT_BIGQUERY_KEYFILE_JSON=${DBT_BIGQUERY_KEYFILE_JSON:-}
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID}
+      - GCP_REGION=${GCP_REGION}
+      - DBT_ROOT_PATH=${DBT_ROOT_PATH}
+      - DBT_TARGET=${DBT_TARGET}
+      - DBT_THREADS=${DBT_THREADS}
+      - DBT_DEV_DATASET=${DBT_DEV_DATASET}
+      - DBT_PROD_DATASET=${DBT_PROD_DATASET}
+      - DBT_PROFILES_DIR=${DBT_PROFILES_DIR}
+    depends_on:
+      - postgres
+    volumes:
+      # Runtime layout finalized in Plan 03 (dbt paths + OAuth) and Plan 05 (orchestration).
+      - ./dags:/opt/airflow/dags
+      - ./dbt:/opt/airflow/dbt
+    ports:
+      - "8080:8080"
+    command: airflow webserver
+
+  scheduler:
+    build: .
+    container_name: airflow_scheduler
+    restart: always
+    user: "astro"
+    depends_on:
+      - webserver
+      - postgres
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
+      - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW__CORE__FERNET_KEY}
+      - AIRFLOW__WEBSERVER__SECRET_KEY=${AIRFLOW__WEBSERVER__SECRET_KEY}
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://astro:astro@postgres:5432/astro
+      # GCP and DBT Configuration
+      - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS}
+      - DBT_BIGQUERY_KEYFILE_JSON=${DBT_BIGQUERY_KEYFILE_JSON:-}
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID}
+      - GCP_REGION=${GCP_REGION}
+      - DBT_ROOT_PATH=${DBT_ROOT_PATH}
+      - DBT_TARGET=${DBT_TARGET}
+      - DBT_THREADS=${DBT_THREADS}
+      - DBT_DEV_DATASET=${DBT_DEV_DATASET}
+      - DBT_PROD_DATASET=${DBT_PROD_DATASET}
+      - DBT_PROFILES_DIR=${DBT_PROFILES_DIR}
+    volumes:
+      # Runtime layout finalized in Plan 03 (dbt paths + OAuth) and Plan 05 (orchestration).
+      - ./dags:/opt/airflow/dags
+      - ./dbt:/opt/airflow/dbt
+    command: airflow scheduler
+
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=astro
+      - POSTGRES_PASSWORD=astro
+      - POSTGRES_DB=astro
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  airflow_db:
+  postgres_data:

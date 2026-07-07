@@ -1,0 +1,77 @@
+
+# Name your project! Project names should contain only lowercase characters
+# and underscores. A good package name should reflect your organization's
+# name or the intended use of these models
+name: 'loom'
+version: '1.0.0'
+config-version: 2
+
+# This setting configures which "profile" dbt uses for this project.
+profile: 'loom'
+
+# These configurations specify where dbt should look for different types of files.
+# The `model-paths` config, for example, states that models in this project can be
+# found in the "models/" directory. You probably won't need to change these!
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:         # directories to be removed by `dbt clean`
+  - "target"
+  - "dbt_packages"
+  - "logs"
+
+# Configuring models
+# Full documentation: https://docs.getdbt.com/docs/configuring-models
+
+models:
+  loom:
+    # Staging models configuration
+    staging:
+      +materialized: view
+      +docs:
+        node_color: "#4472C4"
+      +persist_docs:
+        relation: true
+        columns: true
+      +contract:
+        enforced: false  # Set to true when ready to enforce schema contracts
+    
+    # Intermediate models configuration  
+    intermediate:
+      +materialized: table
+      +docs:
+        node_color: "#70AD47"
+      +persist_docs:
+        relation: true
+        columns: true
+        
+    # Mart models configuration
+    marts:
+      +materialized: table
+      +docs:
+        node_color: "#E97132"
+      +persist_docs:
+        relation: true
+        columns: true
+
+# # Dimension models configuration
+#     dim:
+#       +materialized: table
+#       +docs:
+#         node_color: "#FFD700"
+#       +persist_docs:
+#         relation: true
+#         columns: true
+
+#     # Fact models configuration
+#     fact:
+#       +materialized: table
+#       +docs:
+#         node_color: "#00BFFF"
+#       +persist_docs:
+#         relation: true
+#         columns: true

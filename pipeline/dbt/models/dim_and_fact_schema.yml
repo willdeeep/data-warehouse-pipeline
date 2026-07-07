@@ -1,0 +1,29 @@
+version: 2
+
+models:
+  - name: ebay_dim_brand
+    description: "Dimension table for brands"
+    columns:
+      - name: brand_id
+        tests: [unique, not_null]
+      - name: brand
+        tests: [unique, not_null]
+
+  - name: ebay_dim_category
+    description: "Dimension table for categories"
+    columns:
+      - name: category_id
+        tests: [unique, not_null]
+      - name: category
+        tests: [unique, not_null]
+
+  - name: ebay_fact_items
+    description: "Fact table for eBay items"
+    columns:
+      - name: id
+        tests: [unique, not_null]
+      - name: brand_id
+        tests: [not_null]
+      - name: category_id
+        tests: [not_null]
+      # Add more columns and tests as needed

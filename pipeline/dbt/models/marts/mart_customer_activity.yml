@@ -1,0 +1,102 @@
+version: 2
+
+models:
+  - name: customer_activity_mart
+    description: "MART: Comprehensive customer activity tracking leveraging SCD Type 2 user dimensions. Provides complete customer journey analysis with historical context for profile changes, transactions, and sessions."
+    columns:
+      - name: user_crm_id
+        description: "Customer identifier"
+        tests:
+          - not_null
+      - name: activity_type
+        description: "Type of customer activity (profile_change, transaction, session)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['profile_change', 'transaction', 'session']
+      - name: activity_date
+        description: "Date when the activity occurred"
+        tests:
+          - not_null
+      - name: activity_timestamp
+        description: "Timestamp when the activity occurred"
+        tests:
+          - not_null
+      - name: customer_city
+        description: "Customer's city at time of activity"
+      - name: customer_gender
+        description: "Customer's gender at time of activity"
+      - name: loom_plus_status
+        description: "Loom+ status at time of activity"
+      - name: loom_plus_tier
+        description: "Loom+ tier at time of activity"
+      - name: opt_in_status
+        description: "Marketing opt-in status at time of activity"
+      - name: lifetime_orders
+        description: "Customer's lifetime order count at time of activity"
+      - name: lifetime_value
+        description: "Customer's lifetime value at time of activity"
+      - name: prev_city
+        description: "Previous city (for profile change events only)"
+      - name: prev_loom_plus_status
+        description: "Previous Loom+ status (for profile change events only)"
+      - name: prev_loom_plus_tier
+        description: "Previous Loom+ tier (for profile change events only)"
+      - name: prev_lifetime_value
+        description: "Previous lifetime value (for profile change events only)"
+      - name: transaction_id
+        description: "Transaction identifier (for transaction events only)"
+      - name: session_id
+        description: "Session identifier (for session/transaction events)"
+      - name: product_id
+        description: "Product identifier (for transaction events only)"
+      - name: product_revenue
+        description: "Revenue amount (for transaction events only)"
+      - name: product_quantity
+        description: "Item quantity (for transaction events only)"
+      - name: customer_state_at_time
+        description: "Customer segmentation at time of activity"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['New Customer', 'Repeat Customer', 'Loyal Customer', 'Premium Customer']
+      - name: customer_version_key
+        description: "SCD surrogate key linking to specific customer version"
+        tests:
+          - not_null
+      - name: change_type
+        description: "Specific type of change or activity"
+        tests:
+          - not_null
+      - name: activity_year
+        description: "Year of activity"
+      - name: activity_quarter
+        description: "Quarter of activity"
+      - name: activity_month
+        description: "Month of activity"
+      - name: activity_day_of_week
+        description: "Day of week of activity"
+      - name: activity_is_weekend
+        description: "Whether activity occurred on weekend"
+      - name: product_brand
+        description: "Product brand (for transaction events only)"
+      - name: product_category
+        description: "Product category (for transaction events only)"
+      - name: product_list_price
+        description: "Product list price (for transaction events only)"
+      - name: customer_activity_sequence
+        description: "Sequential number of this activity for the customer"
+        tests:
+          - not_null
+      - name: prev_activity_date
+        description: "Date of customer's previous activity"
+      - name: days_since_last_activity
+        description: "Days since customer's last activity"
+      - name: customer_tenure_days
+        description: "Customer tenure in days at time of activity"
+        tests:
+          - not_null
+      - name: mart_updated_at
+        description: "Timestamp when mart was last updated"
+        tests:
+          - not_null

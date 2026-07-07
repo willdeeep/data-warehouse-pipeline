@@ -1,0 +1,413 @@
+version: 2
+
+models:
+  # DIMENSION TABLES
+  - name: dim_date
+    description: "INTERMEDIATE MODEL: Date dimension table providing calendar attributes for fact table joins. Generates dates from 2020 to 2030 with comprehensive date attributes including business logic flags for weekends and holidays."
+    columns:
+      - name: date_key
+        description: "Primary key in YYYYMMDD integer format for efficient joins"
+        tests:
+          - unique
+          - not_null
+      - name: date
+        description: "Calendar date value"
+        tests:
+          - not_null
+      - name: day_of_week
+        description: "Day of week (1=Sunday, 7=Saturday)"
+      - name: month
+        description: "Month number (1-12)"
+      - name: quarter
+        description: "Quarter number (1-4)"
+      - name: year
+        description: "Four-digit year"
+      - name: is_weekend
+        description: "Boolean flag indicating weekend days (Saturday/Sunday)"
+      - name: is_holiday
+        description: "Boolean flag indicating major holidays"
+      - name: dbt_updated_at
+        description: "dbt processing timestamp"
+      - name: dbt_created_at
+        description: "dbt record creation timestamp"
+
+  - name: dim_users
+    description: "INTERMEDIATE MODEL: User dimension table with SCD Type 2 implementation. Tracks historical changes in customer attributes and lifetime metrics including demographics, lifecycle dates, and subscription status."
+    columns:
+      - name: user_surrogate_key
+        description: "Primary surrogate key for user dimension (composite of user_crm_id + valid_from)"
+        tests:
+          - unique
+          - not_null
+      - name: user_crm_id
+        description: "Natural business key for user (multiple records per user for SCD)"
+        tests:
+          - not_null
+      - name: registration_date
+        description: "Date when user registered their account"
+      - name: latest_login_date
+        description: "Date of user's most recent login"
+      - name: first_purchase_date
+        description: "Date of user's first purchase"
+      - name: last_purchase_date
+        description: "Date of user's most recent purchase"
+      - name: city
+        description: "User's city location (trackable for changes)"
+      - name: gender
+        description: "User's gender classification (trackable for changes)"
+      - name: opt_in_status
+        description: "Email marketing opt-in preference (trackable for changes)"
+      - name: loom_plus_status
+        description: "Loom+ subscription status (trackable for changes)"
+      - name: loom_plus_tier
+        description: "Loom+ subscription tier level (trackable for changes)"
+      - name: lifetime_orders
+        description: "Total number of orders placed by user (trackable for changes)"
+      - name: lifetime_value
+        description: "Total revenue generated from user (trackable for changes)"
+      - name: valid_from
+        description: "SCD Type 2: Start date when this version became effective"
+        tests:
+          - not_null
+      - name: valid_to
+        description: "SCD Type 2: End date when this version became inactive (NULL for current)"
+      - name: is_current
+        description: "SCD Type 2: Flag indicating if this is the current version"
+        tests:
+          - not_null
+      - name: dbt_updated_at
+        description: "dbt processing timestamp"
+      - name: dbt_created_at
+        description: "dbt record creation timestamp"
+
+  - name: dim_products
+    description: "INTERMEDIATE MODEL: Product dimension table with SCD Type 2 implementation. Tracks historical changes in product attributes, pricing, and cost data with profit margin calculations."
+    columns:
+      - name: product_surrogate_key
+        description: "Primary surrogate key for product dimension (composite of product_id + valid_from)"
+        tests:
+          - unique
+          - not_null
+      - name: product_id
+        description: "Natural business key for product (multiple records per product for SCD)"
+        tests:
+          - not_null
+      - name: brand
+        description: "Product brand name (trackable for changes)"
+      - name: name
+        description: "Product name (trackable for changes)"
+      - name: main_category
+        description: "Primary product category (trackable for changes)"
+      - name: sub_category
+        description: "Product subcategory (trackable for changes)"
+      - name: gender_target
+        description: "Target gender for product (trackable for changes)"
+      - name: list_price
+        description: "Product list price (trackable for changes)"
+      - name: unit_cost
+        description: "Product unit cost (trackable for changes)"
+      - name: profit_margin
+        description: "Calculated profit margin ((list_price - unit_cost) / list_price)"
+      - name: valid_from
+        description: "SCD Type 2: Start date when this version became effective"
+        tests:
+          - not_null
+      - name: valid_to
+        description: "SCD Type 2: End date when this version became inactive (NULL for current)"
+      - name: is_current
+        description: "SCD Type 2: Flag indicating if this is the current version"
+        tests:
+          - not_null
+      - name: dbt_updated_at
+        description: "dbt processing timestamp (latest across all sources)"
+      - name: dbt_created_at
+        description: "dbt record creation timestamp"
+
+  - name: dim_source
+    description: "INTERMEDIATE MODEL: Source dimension table for marketing attribution analysis. Standardizes traffic source classifications with automated channel categorization."
+    columns:
+      - name: source_key
+        description: "Primary surrogate key for source dimension"
+        tests:
+          - unique
+          - not_null
+      - name: source
+        description: "Traffic source (e.g., google, meta, tiktok)"
+      - name: source_category
+        description: "Standardized source category (Search, Social, Email, Programmatic, etc.)"
+      - name: dbt_updated_at
+        description: "Timestamp when this record was last updated by dbt."
+      - name: dbt_created_at
+        description: "Timestamp when this record was first created by dbt."
+  - name: dim_medium
+    description: "INTERMEDIATE MODEL: Medium dimension table for marketing attribution analysis. Standardizes traffic medium classifications with automated channel categorization."
+    columns:
+      - name: medium_key
+        description: "Primary surrogate key for medium dimension"
+        tests:
+          - unique
+          - not_null
+      - name: medium
+        description: "Traffic medium (e.g., organic, cpc, social)"
+      - name: medium_category
+        description: "Standardized medium category (Organic, Paid Search, Social, Display, etc.)"
+      - name: dbt_updated_at
+        description: "Timestamp when this record was last updated by dbt."
+      - name: dbt_created_at
+        description: "Timestamp when this record was first created by dbt."
+
+  - name: dim_geo
+    description: "INTERMEDIATE MODEL: Geographic dimension table for location-based analysis. Provides standardized geography hierarchy combining data from sessions and users with default US country assignment."
+    columns:
+      - name: geo_key
+        description: "Primary surrogate key for geography dimension"
+        tests:
+          - unique
+          - not_null
+      - name: city
+        description: "City name (cleaned and standardized)"
+      - name: region
+        description: "State or region"
+      - name: country
+        description: "Country code (defaults to US)"
+      - name: dbt_updated_at
+        description: "Timestamp when this record was last updated by dbt."
+      - name: dbt_created_at
+        description: "Timestamp when this record was first created by dbt."
+
+  - name: dim_devices
+    description: "INTERMEDIATE MODEL: Device dimension table for digital analytics and user experience analysis. Standardizes device, browser, and operating system classifications for technology stack identification."
+    columns:
+      - name: device_key
+        description: "Primary surrogate key for device dimension"
+        tests:
+          - unique
+          - not_null
+      - name: device_type
+        description: "Standardized device type (Mobile, Desktop, Tablet, etc.)"
+      - name: browser
+        description: "Standardized browser name"
+      - name: os
+        description: "Standardized operating system name"
+      - name: dbt_updated_at
+        description: "Timestamp when this record was last updated by dbt."
+      - name: dbt_created_at
+        description: "Timestamp when this record was first created by dbt."
+
+  - name: dim_ad_platform
+    description: "INTERMEDIATE MODEL: Advertising platform dimension table for marketing spend analysis. Standardizes ad platform classifications and channel types for comprehensive advertising attribution."
+    columns:
+      - name: platform_key
+        description: "Primary surrogate key for ad platform dimension"
+        tests:
+          - unique
+          - not_null
+      - name: platform_name
+        description: "Advertising platform name"
+      - name: channel_type
+        description: "Marketing channel type (Paid Social, Search, DSP, etc.)"
+      - name: dbt_updated_at
+        description: "Timestamp when this record was last updated by dbt."
+      - name: dbt_created_at
+        description: "Timestamp when this record was first created by dbt."
+
+  # FACT TABLES
+  - name: fact_sessions
+    description: "INTERMEDIATE MODEL: Session fact table for digital analytics and user behavior analysis. Contains session-level metrics with dimensional foreign keys including page views, conversion flags, and bounce detection."
+    columns:
+      - name: session_id
+        description: "Primary key for session fact"
+        tests:
+          - unique:
+              config:
+                severity: warn
+          - not_null
+      - name: user_cookie_id
+        description: "Anonymous user identifier for session tracking"
+      - name: date_key
+        description: "Foreign key to date dimension"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_date')
+              field: date_key
+      - name: user_crm_id
+        description: "Foreign key to user dimension"
+        tests:
+          - relationships:
+              to: ref('dim_users')
+              field: user_crm_id
+              config:
+                severity: warn
+                where: "user_crm_id is not null"  # Only test non-null values
+      - name: source_key
+        description: "Foreign key to source dimension"
+        tests:
+          - relationships:
+              to: ref('dim_source')
+              field: source_key
+              config:
+                severity: warn
+      - name: platform_key
+        description: "Foreign key to ad platform dimension"
+        tests:
+          - relationships:
+              to: ref('dim_ad_platform')
+              field: platform_key
+      - name: medium_key
+        description: "Foreign key to medium dimension"
+        tests:
+          - relationships:
+              to: ref('dim_medium')
+              field: medium_key
+              config:
+                severity: warn
+      - name: geo_key
+        description: "Foreign key to geography dimension"
+        tests:
+          - relationships:
+              to: ref('dim_geo')
+              field: geo_key
+      - name: device_key
+        description: "Foreign key to device dimension"
+        tests:
+          - relationships:
+              to: ref('dim_devices')
+              field: device_key
+      - name: page_views
+        description: "Number of page views in session"
+      - name: add_to_cart_flag
+        description: "Boolean indicating if user added items to cart"
+      - name: bounce_flag
+        description: "Boolean indicating if session was a bounce"
+      - name: transaction_count
+        description: "Number of transactions in session"
+      - name: session_duration_seconds
+        description: "Duration of session in seconds from first to last event. Null for bounced sessions (single page view with no engagement)."
+      - name: dbt_updated_at
+        description: "Timestamp when this record was last updated by dbt."
+      - name: dbt_created_at
+        description: "Timestamp when this record was first created by dbt."
+      
+
+  - name: fact_transactions
+    description: "INTERMEDIATE MODEL: Transaction fact table for revenue analysis and business performance metrics. Contains transaction line item data with dimensional foreign keys including revenue, cost, profit calculations, and return tracking."
+    columns:
+      - name: transaction_product_id
+        description: "Primary key for transaction product line item"
+        tests:
+          - unique:
+              config:
+                severity: warn
+          - not_null
+      - name: date_key
+        description: "Foreign key to date dimension"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_date')
+              field: date_key
+      - name: user_crm_id
+        description: "Foreign key to user dimension"
+        tests:
+          - relationships:
+              to: ref('dim_users')
+              field: user_crm_id
+              config:
+                severity: warn
+                where: "user_crm_id IS NOT NULL"  # Add this line
+      - name: session_id
+        description: "Foreign key to session fact"
+        tests:
+          - relationships:
+              to: ref('fact_sessions')
+              field: session_id
+              config:
+                severity: warn
+      - name: product_id
+        description: "Foreign key to product dimension"
+        tests:
+          - relationships:
+              to: ref('dim_products')
+              field: product_id
+      - name: transaction_id
+        description: "Natural key - transaction identifier"
+      - name: user_cookie_id
+        description: "Anonymous user identifier for guest transactions"
+      - name: product_price
+        description: "Price per product"
+      - name: product_quantity
+        description: "Quantity of products purchased"
+      - name: product_revenue
+        description: "Revenue amount for line item (price * quantity)"
+      - name: transaction_revenue
+        description: "Total transaction revenue"
+      - name: transaction_shipping
+        description: "Transaction shipping cost"
+      - name: transaction_total
+        description: "Total transaction amount including shipping"
+      - name: transaction_coupon
+        description: "Coupon code applied to transaction"
+      - name: product_contribution_pct
+        description: "Percentage contribution of this product to total transaction"
+      - name: pricing_type
+        description: "Pricing classification (Discount or Full Price)"
+      - name: customer_type
+        description: "Customer classification (Registered or Guest)"
+      - name: loom_plus_status
+        description: "Loom+ subscription status for the customer (boolean converted to string, null for non-subscribers)"
+      - name: return_status
+        description: "Product return status from returns table"
+      - name: return_quantity
+        description: "Quantity of items returned"
+      - name: return_date
+        description: "Date when return was processed"
+      - name: date
+        description: "Transaction date (source metadata)"
+      - name: dbt_updated_at
+        description: "dbt processing timestamp"
+      - name: dbt_valid_from
+        description: "dbt validity start date"
+      - name: has_return
+        description: "Boolean indicating if item has any returns"
+      - name: return_rate_pct
+        description: "Percentage of items returned vs originally purchased"
+      - name: dbt_updated_at
+        description: "Timestamp when this record was last updated by dbt."
+      - name: dbt_created_at
+        description: "Timestamp when this record was first created by dbt."
+
+
+  - name: fact_advertising
+    description: "INTERMEDIATE MODEL: Advertising fact table for marketing performance analysis. Contains ad platform metrics with dimensional foreign keys including impressions, clicks, cost, and calculated CTR metrics."
+    columns:
+      - name: ad_key
+        description: "Primary key for advertising fact"
+        tests:
+          - unique
+          - not_null
+      - name: date_key
+        description: "Foreign key to date dimension"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_date')
+              field: date_key
+      - name: platform_key
+        description: "Foreign key to ad platform dimension"
+        tests:
+          - relationships:
+              to: ref('dim_ad_platform')
+              field: platform_key
+      - name: impressions
+        description: "Number of ad impressions"
+      - name: clicks
+        description: "Number of ad clicks"
+      - name: cost
+        description: "Advertising spend amount"
+      - name: ctr
+        description: "Click-through rate (clicks/impressions)"
+      - name: dbt_updated_at
+        description: "Timestamp when this record was last updated by dbt. Data type: TIMESTAMP."
+      - name: dbt_created_at
+        description: "dbt record creation timestamp"

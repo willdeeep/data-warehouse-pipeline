@@ -1,0 +1,123 @@
+version: 2
+
+models:
+  - name: transactions_mart
+    description: "Comprehensive transaction mart with profit analysis and refund tracking. Built on top of the intermediate layer (fact_transactions, dim_date, dim_users, dim_products, fact_sessions) to provide business-ready transaction analytics."
+    columns:
+      - name: transaction_product_id
+        description: "Unique identifier for each transaction product line item"
+        tests:
+          - not_null:
+              config:
+                tags: ['critical']
+          - unique:
+              config:
+                tags: ['critical']
+                severity: warn
+      - name: date_key
+        description: "Date dimension foreign key"
+        tests:
+          - not_null:
+              config:
+                tags: ['critical']
+          - relationships:
+              to: ref('dim_date')
+              field: date_key
+              config:
+                tags: ['critical']
+      - name: user_crm_id
+        description: "User identifier from CRM system (null for guest checkout)"
+        tests:
+          - relationships:
+              to: ref('dim_users')
+              field: user_crm_id
+              config:
+                severity: warn
+                where: "user_crm_id is not null"  # Only test non-null values
+      - name: user_cookie_id
+        description: "Anonymous user identifier for session tracking and guest user analysis"
+      - name: session_id
+        description: "Session identifier for attribution"
+      - name: product_id
+        description: "Product identifier"
+        tests:
+          - not_null:
+              config:
+                tags: ['critical']
+          - relationships:
+              to: ref('dim_products')
+              field: product_id
+              config:
+                tags: ['critical']
+      
+      # Date dimension attributes
+      - name: transaction_date
+        description: "Date of the transaction"
+      - name: transaction_year
+        description: "Year of the transaction"
+      - name: transaction_month
+        description: "Month of the transaction"
+      - name: transaction_day_of_week
+        description: "Day of week for the transaction (1=Sunday, 7=Saturday)"
+      - name: transaction_quarter
+        description: "Quarter of the transaction"
+      - name: is_weekend
+        description: "Boolean indicating if transaction occurred on weekend"
+      - name: is_holiday
+        description: "Boolean indicating if transaction occurred on holiday"
+      
+      # Product dimension attributes
+      - name: product_name
+        description: "Product name from product dimension"
+      - name: product_brand
+        description: "Product brand from product dimension"
+      - name: product_main_category
+        description: "Product main category from product dimension"
+      - name: product_sub_category
+        description: "Product sub category from product dimension"
+      - name: product_gender_target
+        description: "Target gender for product from product dimension"
+      - name: product_list_price
+        description: "Product list price from product dimension"
+      
+      # User dimension attributes
+      - name: user_city
+        description: "User's city from user dimension (null for guest checkout)"
+      - name: user_gender
+        description: "User's gender from user dimension (null for guest checkout)"
+      - name: user_registration_date
+        description: "User's registration date from user dimension (null for guest checkout)"
+      - name: user_lifetime_orders
+        description: "User's lifetime order count from user dimension (null for guest checkout)"
+      - name: user_lifetime_value
+        description: "User's lifetime value from user dimension (null for guest checkout)"
+      - name: user_loom_plus_status
+        description: "User's Loom+ subscription status from user dimension (null for guest checkout)"
+      
+      # Transaction metrics
+      - name: coupon_flag
+        description: "Boolean indicating if transaction used a coupon"
+        tests:
+          - not_null
+      - name: return_status
+        description: "Return status from product returns data"
+      - name: quantity
+        description: "Quantity of items purchased"
+        tests:
+          - not_null
+      - name: revenue
+        description: "Total revenue for the line item (price * quantity)"
+        tests:
+          - not_null
+      - name: cost
+        description: "Total cost for the line item (cost * quantity)"
+      - name: gross_profit
+        description: "Gross profit before refunds (revenue - cost)"
+      - name: refund_amount
+        description: "Amount refunded for this line item"
+        tests:
+          - not_null
+      - name: net_revenue
+        description: "Net revenue after refunds (revenue - refund_amount)"
+        tests:
+          - not_null

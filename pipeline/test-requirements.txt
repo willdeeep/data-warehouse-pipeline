@@ -1,0 +1,29 @@
+# Test Requirements File
+# 
+# This file contains packages for testing and development. All the core packages
+# (pytest, psutil, rich, click) are already included in the Astronomer base image
+# so they don't need to be reinstalled unless we need specific versions.
+
+# Core Testing Framework (already in base image)
+# pytest==7.4.4                   # Already in base image (7.4.4)
+
+# Additional testing packages (install locally for development if needed)
+# pytest-xdist==3.7.0             # Parallel test execution (not in container)
+# pytest-cov==6.2.1               # Code coverage reporting (not in container)  
+# pytest-mock==3.14.1             # Enhanced mocking capabilities (not in container)
+# pytest-timeout==2.4.0           # Test timeout handling (not in container)
+
+# System Monitoring (already in base image)
+# psutil==5.9.8                   # Already in base image (5.9.8)
+
+# Code Quality (install locally for development if needed)
+# flake8==7.3.0                   # Code linting (not in container)
+
+# Terminal Output (already in base image)
+# rich==13.7.1                    # Already in base image (13.7.1)
+# click==8.1.7                    # Already in base image (8.1.7)
+
+# Note: Packages commented out above are not installed in the astro-runtime container
+# but can be installed locally for development:
+# pip install pytest-xdist pytest-cov pytest-mock pytest-timeout flake8
+# compatibility with the current local environment.
