@@ -1,8 +1,8 @@
-## What PR this relates to
-[PIC_#](https://prism-training.atlassian.net/browse/PIC-##)
+## Related issue
+Closes #
 
 ## Changes
 Explain context and changes here
 
-## Notes for Testing
-If no testing is required please explain why
+## Notes for testing
+If no testing is required, please explain why
