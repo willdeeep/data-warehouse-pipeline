@@ -31,3 +31,22 @@ module "iam" {
   project_id = var.project_id
   depends_on = [module.project]
 }
+
+module "storage" {
+  source     = "../../modules/storage"
+  project_id = var.project_id
+  location   = var.bq_location
+  buckets = {
+    dag_logs = {
+      name           = var.dag_logs_bucket
+      retention_days = 30
+      force_destroy  = true
+    }
+    dbt_artifacts = {
+      name           = var.dbt_artifacts_bucket
+      retention_days = 90
+      force_destroy  = true
+    }
+  }
+  depends_on = [module.project]
+}

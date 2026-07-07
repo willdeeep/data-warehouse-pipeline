@@ -19,3 +19,13 @@ variable "state_bucket_name" {
   type        = string
   description = "Globally-unique GCS bucket name for Terraform remote state."
 }
+
+variable "dag_logs_bucket" {
+  type        = string
+  description = "Globally-unique GCS bucket name for DAG logs."
+}
+
+variable "dbt_artifacts_bucket" {
+  type        = string
+  description = "Globally-unique GCS bucket name for dbt artifacts."
+}
