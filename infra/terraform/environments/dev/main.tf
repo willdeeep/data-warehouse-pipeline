@@ -13,3 +13,15 @@ module "state" {
   state_bucket_name = var.state_bucket_name
   location          = var.bq_location
 }
+
+module "project" {
+  source     = "../../modules/project"
+  project_id = var.project_id
+}
+
+module "bigquery" {
+  source     = "../../modules/bigquery"
+  project_id = var.project_id
+  location   = var.bq_location
+  depends_on = [module.project]
+}
