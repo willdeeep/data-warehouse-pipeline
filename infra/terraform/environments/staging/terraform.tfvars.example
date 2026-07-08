@@ -1,0 +1,9 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is gitignored.
+# Values mirror the GCP_* / TF_* keys in the repo-root .env.
+
+project_id        = "your-gcp-project-id" # e.g. loom-insights (must be a project you own)
+region            = "us-central1"
+bq_location       = "US"
+state_bucket_name    = "your-unique-tf-state-bucket"    # globally unique, e.g. loom-insights-tfstate
+dag_logs_bucket      = "your-unique-dag-logs-bucket"    # globally unique
+dbt_artifacts_bucket = "your-unique-dbt-artifacts-bucket" # globally unique
