@@ -1,4 +1,5 @@
 """Post-load validation: query BigQuery to confirm integrity + accepted values."""
+
 from __future__ import annotations
 
 from google.cloud import bigquery
@@ -28,8 +29,15 @@ def validate_bigquery(cfg) -> dict:
     report: dict = {"row_counts": {}, "orphans": 0, "violations": []}
 
     tables = [
-        "productattributes", "product_costs", "product_listprices", "users", "sessions",
-        "transactions", "transactionsanditems", "funnelevents", "product_returns",
+        "productattributes",
+        "product_costs",
+        "product_listprices",
+        "users",
+        "sessions",
+        "transactions",
+        "transactionsanditems",
+        "funnelevents",
+        "product_returns",
         "adplatform_data",
     ]
     for t in tables:

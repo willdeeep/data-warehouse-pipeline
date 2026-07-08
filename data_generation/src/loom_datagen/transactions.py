@@ -1,4 +1,5 @@
 """Transactions + line items: converting sessions become orders (FK to sessions, products)."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -9,6 +10,7 @@ _HEX = np.array(list("0123456789abcdef"))
 
 def _txn_id(rng: np.random.Generator) -> str:
     return "TXN-" + "".join(_HEX[rng.integers(0, 16, size=12)])
+
 
 _COUPONS = [None, "SAVE10", "FREESHIP", "WELCOME"]
 _COUPON_P = [0.70, 0.10, 0.10, 0.10]
@@ -36,25 +38,29 @@ def build_transactions(cfg, rng: np.random.Generator, sessions: pd.DataFrame, pr
         shipping = float(rng.choice(_SHIPPING_OPTIONS))
         coupon = _COUPONS[int(rng.choice(len(_COUPONS), p=_COUPON_P))]
 
-        for it, q, p in zip(chosen, qtys, sel_prices):
-            lines.append({
-                "transaction_id": txn_id,
-                "item_id": it,
-                "date": sess["date"],
-                "item_price": round(float(p), 2),
-                "item_quantity": int(q),
-            })
+        for it, q, p in zip(chosen, qtys, sel_prices, strict=True):
+            lines.append(
+                {
+                    "transaction_id": txn_id,
+                    "item_id": it,
+                    "date": sess["date"],
+                    "item_price": round(float(p), 2),
+                    "item_quantity": int(q),
+                }
+            )
 
-        headers.append({
-            "transaction_id": txn_id,
-            "date": sess["date"],
-            "session_id": sess["session_id"],
-            "transaction_coupon": coupon,
-            "transaction_revenue": round(revenue, 2),
-            "transaction_shipping": shipping,
-            "transaction_total": round(revenue + shipping, 2),
-            "user_cookie_id": sess["user_cookie_id"],
-            "user_crm_id": sess["user_crm_id"],
-        })
+        headers.append(
+            {
+                "transaction_id": txn_id,
+                "date": sess["date"],
+                "session_id": sess["session_id"],
+                "transaction_coupon": coupon,
+                "transaction_revenue": round(revenue, 2),
+                "transaction_shipping": shipping,
+                "transaction_total": round(revenue + shipping, 2),
+                "user_cookie_id": sess["user_cookie_id"],
+                "user_crm_id": sess["user_crm_id"],
+            }
+        )
 
     return pd.DataFrame(headers), pd.DataFrame(lines)

@@ -1,4 +1,5 @@
 """Ad-platform daily spend generator: one row per date, five channels."""
+
 from __future__ import annotations
 
 import numpy as np

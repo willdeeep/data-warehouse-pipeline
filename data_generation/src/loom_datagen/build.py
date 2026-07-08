@@ -2,6 +2,7 @@
 
 Grown task-by-task; keyed by the exact loom_sync source table names.
 """
+
 from __future__ import annotations
 
 import pandas as pd

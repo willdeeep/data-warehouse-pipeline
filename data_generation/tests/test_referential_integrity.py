@@ -1,8 +1,15 @@
 from loom_datagen.schema import SCHEMAS
 
 EXPECTED = {
-    "productattributes", "product_costs", "product_listprices", "users", "sessions",
-    "transactions", "transactionsanditems", "funnelevents", "product_returns",
+    "productattributes",
+    "product_costs",
+    "product_listprices",
+    "users",
+    "sessions",
+    "transactions",
+    "transactionsanditems",
+    "funnelevents",
+    "product_returns",
     "adplatform_data",
 }
 
