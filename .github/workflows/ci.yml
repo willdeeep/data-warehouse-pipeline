@@ -1,0 +1,75 @@
+name: CI
+
+# Required status check for PRs into main (issue #28). Also runs on dev/staging PRs
+# and pushes to main for signal. Integration tests (need ADC) are never run here.
+on:
+  pull_request:
+    branches: [dev, staging, main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uvx ruff check data_generation
+      - run: uvx ruff format --check data_generation
+
+  datagen-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: cd data_generation && uv sync --extra dev && uv run pytest -q
+
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - name: validate all environments
+        run: |
+          for e in dev staging prod; do
+            ( cd "infra/terraform/environments/$e" \
+              && terraform init -backend=false -input=false \
+              && terraform validate )
+          done
+      - name: fmt check
+        run: terraform fmt -check -recursive infra/terraform
+
+  # --- Jobs below activate as their subsystems land; kept visible as the target matrix. ---
+  etl-tests:
+    if: false # TODO(Plan 04): enable once pipeline/etl/loom_ebay exists
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: cd pipeline/etl && uv run --with pytest --with requests-mock pytest -q
+
+  dbt-parse:
+    if: false # TODO(Plan 03): enable once profiles/models are validated
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv tool install dbt-bigquery
+      - run: cd pipeline/dbt && dbt deps && dbt parse
+        env:
+          GCP_PROJECT_ID: dummy
+          DBT_DEV_DATASET: dev_warehouse
+
+  dag-integrity:
+    if: false # TODO(Plan 04): enable once the eBay DAG + deps are in place
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: >
+          uv run --with apache-airflow --with apache-airflow-providers-google
+          python -c "from airflow.models import DagBag; b=DagBag('pipeline/dags');
+          assert not b.import_errors, b.import_errors"
