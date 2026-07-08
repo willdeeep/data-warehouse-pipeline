@@ -4,6 +4,7 @@ Column names and data types mirror pipeline/dbt/models/sources/source.yml exactl
 Modes are chosen so generated frames load without violating NOT NULL where the
 generator guarantees a value, and stay NULLABLE where nulls are legitimate.
 """
+
 from __future__ import annotations
 
 from google.cloud import bigquery as bq

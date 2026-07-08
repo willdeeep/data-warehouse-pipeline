@@ -1,13 +1,28 @@
 """Sessions generator: one row per session, ~70% tied to a known user (FK to users)."""
+
 from __future__ import annotations
 
 import numpy as np
 import pandas as pd
 
 TRAFFIC_MEDIUMS = [
-    "organic", "paid", "email", "social", "direct", "referral", "cpc", "display",
-    "(none)", "crm", "affiliate", "influencer", "cpm", "organic_social",
-    "paid_social", "comparison", "cpv",
+    "organic",
+    "paid",
+    "email",
+    "social",
+    "direct",
+    "referral",
+    "cpc",
+    "display",
+    "(none)",
+    "crm",
+    "affiliate",
+    "influencer",
+    "cpm",
+    "organic_social",
+    "paid_social",
+    "comparison",
+    "cpv",
 ]
 
 TRAFFIC_SOURCES = ["google", "facebook", "direct", "instagram", "tiktok", "newsletter"]
@@ -31,15 +46,17 @@ def build_sessions(cfg, rng: np.random.Generator, fake, users: pd.DataFrame) -> 
     crm = pd.Series([pd.NA] * n, dtype="object")
     crm[logged_in] = rng.choice(users["user_crm_id"].to_numpy(), int(logged_in.sum()))
 
-    return pd.DataFrame({
-        "session_id": _hex_ids(rng, n, "SESS-", 12),
-        "date": pd.to_datetime(dates).date,
-        "city": [fake.city() for _ in range(n)],
-        "device_category": rng.choice(
-            ["desktop", "mobile", "tablet", "unknown"], n, p=[0.45, 0.45, 0.08, 0.02]
-        ),
-        "traffic_medium": rng.choice(TRAFFIC_MEDIUMS, n),
-        "traffic_source": rng.choice(TRAFFIC_SOURCES, n),
-        "user_cookie_id": _hex_ids(rng, n, "CK-", 16),
-        "user_crm_id": crm,
-    })
+    return pd.DataFrame(
+        {
+            "session_id": _hex_ids(rng, n, "SESS-", 12),
+            "date": pd.to_datetime(dates).date,
+            "city": [fake.city() for _ in range(n)],
+            "device_category": rng.choice(
+                ["desktop", "mobile", "tablet", "unknown"], n, p=[0.45, 0.45, 0.08, 0.02]
+            ),
+            "traffic_medium": rng.choice(TRAFFIC_MEDIUMS, n),
+            "traffic_source": rng.choice(TRAFFIC_SOURCES, n),
+            "user_cookie_id": _hex_ids(rng, n, "CK-", 16),
+            "user_crm_id": crm,
+        }
+    )

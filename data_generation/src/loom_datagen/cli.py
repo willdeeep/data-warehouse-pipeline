@@ -1,4 +1,5 @@
 """CLI: `loom-datagen generate|validate`."""
+
 from __future__ import annotations
 
 import os

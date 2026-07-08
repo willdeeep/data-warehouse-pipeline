@@ -1,5 +1,4 @@
 import pytest
-
 from loom_datagen.build import build_all
 from loom_datagen.config import DatagenConfig
 

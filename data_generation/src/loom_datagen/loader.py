@@ -1,4 +1,5 @@
 """Load generated DataFrames into BigQuery (idempotent WRITE_TRUNCATE, explicit schema)."""
+
 from __future__ import annotations
 
 import pandas as pd

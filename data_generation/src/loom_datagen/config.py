@@ -1,4 +1,5 @@
 """Configuration for the synthetic data generator (env + optional scale presets)."""
+
 from __future__ import annotations
 
 from pydantic_settings import BaseSettings, SettingsConfigDict

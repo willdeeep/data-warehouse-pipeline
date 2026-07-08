@@ -39,6 +39,15 @@ module "orchestration" {
   enabled    = false
 }
 
+# Workload Identity Federation for GitHub Actions deploys (issue #28).
+# Project-global; bootstrapped here via the human-run dev apply, used by CI to deploy prod.
+module "github_wif" {
+  source            = "../../modules/github_wif"
+  project_id        = var.project_id
+  github_repository = var.github_repository
+  deploy_sa_email   = module.iam.service_account_emails["loom-pipeline"]
+}
+
 module "storage" {
   source     = "../../modules/storage"
   project_id = var.project_id
