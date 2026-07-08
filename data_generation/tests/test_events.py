@@ -1,0 +1,25 @@
+EVENTS = ["page_view", "view_item", "add_to_cart", "begin_checkout", "purchase", "remove_from_cart"]
+
+
+def test_events_and_returns(frames):
+    fe = frames["funnelevents"]
+    ret = frames["product_returns"]
+    t = frames["transactions"]
+    ti = frames["transactionsanditems"]
+
+    assert fe["event_name"].isin(EVENTS).all()
+
+    # purchase events carry a real transaction_id; non-purchase events do not
+    purchases = fe.loc[fe.event_name == "purchase", "transaction_id"]
+    assert purchases.notna().all()
+    assert set(purchases).issubset(set(t["transaction_id"]))
+    assert fe.loc[fe.event_name != "purchase", "transaction_id"].isna().all()
+
+    # every event references a real session
+    assert set(fe["session_id"]).issubset(set(frames["sessions"]["session_id"]))
+
+    # returns: valid status, real (transaction, item) pairs, qty within purchased
+    assert ret["return_status"].isin(["Refund", "Exchange"]).all()
+    pairs = set(map(tuple, ti[["transaction_id", "item_id"]].to_numpy()))
+    assert set(map(tuple, ret[["transaction_id", "item_id"]].to_numpy())).issubset(pairs)
+    assert (ret["return_quantity"] <= ret["item_quantity"]).all()
