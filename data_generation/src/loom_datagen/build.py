@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import pandas as pd
 
+from .adspend import build_adspend
 from .catalog import build_catalog
 from .events import build_funnelevents, build_returns
 from .rng import make_faker, make_rng
@@ -24,6 +25,7 @@ def build_all(cfg) -> dict[str, pd.DataFrame]:
     txns, items = build_transactions(cfg, rng, sessions, prices)
     funnelevents = build_funnelevents(cfg, rng, sessions, attrs, txns)
     returns = build_returns(cfg, rng, items)
+    adspend = build_adspend(cfg, rng)
 
     return {
         "productattributes": attrs,
@@ -35,4 +37,5 @@ def build_all(cfg) -> dict[str, pd.DataFrame]:
         "transactionsanditems": items,
         "funnelevents": funnelevents,
         "product_returns": returns,
+        "adplatform_data": adspend,
     }
