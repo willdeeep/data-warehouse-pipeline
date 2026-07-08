@@ -17,3 +17,13 @@ output "service_account_emails" {
   value       = module.iam.service_account_emails
   description = "Service accounts for CI/deploy."
 }
+
+output "wif_provider" {
+  value       = module.github_wif.provider_resource_name
+  description = "Set as GitHub Actions var WIF_PROVIDER for keyless deploys."
+}
+
+output "deploy_sa_email" {
+  value       = module.iam.service_account_emails["loom-pipeline"]
+  description = "Set as GitHub Actions var DEPLOY_SA_EMAIL."
+}

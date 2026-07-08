@@ -29,3 +29,9 @@ variable "dbt_artifacts_bucket" {
   type        = string
   description = "Globally-unique GCS bucket name for dbt artifacts."
 }
+
+variable "github_repository" {
+  type        = string
+  default     = "willdeeep/data-warehouse-pipeline"
+  description = "owner/repo allowed to federate via Workload Identity (issue #28)."
+}
