@@ -1,8 +1,6 @@
 """Sessions generator: one row per session, ~70% tied to a known user (FK to users)."""
 from __future__ import annotations
 
-import uuid
-
 import numpy as np
 import pandas as pd
 
@@ -15,8 +13,13 @@ TRAFFIC_MEDIUMS = [
 TRAFFIC_SOURCES = ["google", "facebook", "direct", "instagram", "tiktok", "newsletter"]
 
 
+_HEX = np.array(list("0123456789abcdef"))
+
+
 def _hex_ids(rng: np.random.Generator, n: int, prefix: str, width: int) -> list[str]:
-    return [f"{prefix}{uuid.UUID(int=int(x)).hex[:width]}" for x in rng.integers(0, 2**60, n)]
+    """Random ids of exactly `width` hex chars, drawn digit-by-digit (avoids int overflow)."""
+    digits = _HEX[rng.integers(0, 16, size=(n, width))]
+    return [prefix + "".join(row) for row in digits]
 
 
 def build_sessions(cfg, rng: np.random.Generator, fake, users: pd.DataFrame) -> pd.DataFrame:

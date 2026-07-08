@@ -15,3 +15,7 @@ def test_sessions(frames):
     assert known.shape[0] < s.shape[0]  # some anonymous sessions exist
 
     assert (pd.to_datetime(s["date"]) >= pd.Timestamp("2020-01-01")).all()
+
+    # session_id / cookie ids must be high-cardinality (guards the hex-id generator)
+    assert s["session_id"].nunique() > 0.99 * len(s)
+    assert s["user_cookie_id"].nunique() > 0.99 * len(s)
