@@ -7,6 +7,7 @@ from __future__ import annotations
 import pandas as pd
 
 from .catalog import build_catalog
+from .events import build_funnelevents, build_returns
 from .rng import make_faker, make_rng
 from .sessions import build_sessions
 from .transactions import build_transactions
@@ -21,6 +22,8 @@ def build_all(cfg) -> dict[str, pd.DataFrame]:
     users = build_users(cfg, rng, fake)
     sessions = build_sessions(cfg, rng, fake, users)
     txns, items = build_transactions(cfg, rng, sessions, prices)
+    funnelevents = build_funnelevents(cfg, rng, sessions, attrs, txns)
+    returns = build_returns(cfg, rng, items)
 
     return {
         "productattributes": attrs,
@@ -30,4 +33,6 @@ def build_all(cfg) -> dict[str, pd.DataFrame]:
         "sessions": sessions,
         "transactions": txns,
         "transactionsanditems": items,
+        "funnelevents": funnelevents,
+        "product_returns": returns,
     }
