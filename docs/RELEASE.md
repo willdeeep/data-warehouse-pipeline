@@ -61,18 +61,24 @@ and the deploy-SA impersonation binding are created by the `github_wif` Terrafor
   branches can iterate and deploy to dev manually.
 - `staging`: unprotected until its workflow is enabled.
 
-## ⚠️ Multi-environment caveat (known consideration)
+## Multi-environment naming (decided — see #29)
 
-The `bigquery`/`storage` modules use **fixed** resource names (`loom_sync`, `dev_warehouse`,
-`warehouse`, and the bucket names). Applying **dev and prod in the same GCP project would
-collide.** For real multi-environment use, either:
+To let `dev`/`staging`/`prod` coexist in **one GCP project**, resources use **purpose-based
+names with an environment prefix** — `dev_`, `stg_`, and **no prefix for prod**:
 
-1. **One GCP project per environment** (recommended — full isolation), or
-2. **Env-prefixed names** within one project (e.g. `dev_loom_sync`, `prod_loom_sync`).
+| Env | Source dataset | Warehouse dataset |
+|-----|----------------|-------------------|
+| dev | `dev_loom_sync` | `dev_warehouse` |
+| staging | `stg_loom_sync` | `stg_warehouse` |
+| prod | `loom_sync` | `warehouse` |
 
-The single-project setup used for local development is fine for `dev`; wire a separate prod
-project (or name prefixes) before enabling the automated prod deploy. Tracked as a pre-staging
-improvement.
+(In a real deployment prod would be a **separate GCP project** for fully isolated,
+version-labelled releases; here prod is distinguished by the absence of a prefix.)
+
+This migration — parametrizing the Terraform modules, retargeting the datagen, and aligning
+dbt — is **executed at the start of Plan 03** (issue **#29**), bundled with a clean data
+reload. Until then, `dev` uses the current unprefixed `loom_sync`; the automated prod deploy
+must not run against this single project until #29 lands.
 
 ## Manual deploy (dev / staging)
 
