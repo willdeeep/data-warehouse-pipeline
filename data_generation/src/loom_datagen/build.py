@@ -8,6 +8,7 @@ import pandas as pd
 
 from .catalog import build_catalog
 from .rng import make_faker, make_rng
+from .users import build_users
 
 
 def build_all(cfg) -> dict[str, pd.DataFrame]:
@@ -15,9 +16,11 @@ def build_all(cfg) -> dict[str, pd.DataFrame]:
     fake = make_faker(cfg.seed)
 
     attrs, costs, prices = build_catalog(cfg, rng, fake)
+    users = build_users(cfg, rng, fake)
 
     return {
         "productattributes": attrs,
         "product_costs": costs,
         "product_listprices": prices,
+        "users": users,
     }
