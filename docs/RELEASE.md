@@ -89,6 +89,30 @@ terraform init -backend-config="bucket=<TF_STATE_BUCKET>"
 terraform apply
 ```
 
+## Versioning & CHANGELOG (#31)
+
+**Tag-derived — no version file to bump.** The git tag `vX.Y.Z` is the single source of truth;
+`data_generation` resolves its version dynamically via `uv-dynamic-versioning` (hatchling
+backend). Untagged commits build as a PEP 440 dev version (e.g. `0.1.0.post3.dev0+g1238da4`);
+that hash suffix is expected. Read it at runtime from package metadata
+(`loom_datagen.__version__`), never hard-coded.
+
+Tag scheme (staged-release-flow):
+
+| Stage | Tag |
+|-------|-----|
+| `dev` | `vX.Y.Z-alpha.N` |
+| `staging` | `vX.Y.Z-rc.N` |
+| `main` | `vX.Y.Z` |
+
+Release = tag the commit, then push: `git tag vX.Y.Z && git push origin vX.Y.Z`. CI checkouts
+use `fetch-depth: 0` + `fetch-tags: true` so builds resolve the real version.
+
+**CHANGELOG discipline** (`CHANGELOG.md`, Keep a Changelog): every working-branch PR adds an
+entry under `## [Unreleased]`. At the main-release gate, stamp `[Unreleased]` to
+`## [X.Y.Z] — YYYY-MM-DD` **on `dev` first**, then promote `dev → staging → main` so all
+branches carry the same stamped changelog (keeps the post-release back-merge conflict-free).
+
 ## Local quality gate
 
 ```bash

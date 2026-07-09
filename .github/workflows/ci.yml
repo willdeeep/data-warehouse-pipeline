@@ -24,6 +24,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history + tags so uv-dynamic-versioning resolves the version
+          fetch-tags: true
       - uses: astral-sh/setup-uv@v5
       - run: cd data_generation && uv sync --extra dev && uv run pytest -q
 
