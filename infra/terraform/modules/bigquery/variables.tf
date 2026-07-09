@@ -8,24 +8,23 @@ variable "location" {
   description = "BigQuery location (US, EU, or a region). Must match the source project."
 }
 
+variable "dataset_prefix" {
+  type        = string
+  default     = ""
+  description = "Environment prefix for dataset ids: 'dev_', 'stg_', or '' for prod."
+}
+
+variable "allow_dataset_deletion" {
+  type        = bool
+  default     = false
+  description = "Whether datasets may be dropped with contents (true for dev/staging, false for prod)."
+}
+
 variable "datasets" {
-  type = map(object({
-    description                = string
-    delete_contents_on_destroy = bool
-  }))
-  description = "BigQuery datasets keyed by dataset_id. Ids must match dbt source.yml schemas."
+  type        = map(string)
+  description = "Purpose-based dataset names -> description. Prefixed per environment."
   default = {
-    loom_sync = {
-      description                = "Raw source tables (Faker-seeded); dbt source schema."
-      delete_contents_on_destroy = true
-    }
-    dev_warehouse = {
-      description                = "dbt dev target + eBay landing (ebay_transformed)."
-      delete_contents_on_destroy = true
-    }
-    warehouse = {
-      description                = "dbt prod target."
-      delete_contents_on_destroy = false
-    }
+    loom_sync = "Raw source tables (Faker-seeded); dbt source schema."
+    warehouse = "dbt target (staging/intermediate/marts) + eBay landing (ebay_transformed)."
   }
 }
