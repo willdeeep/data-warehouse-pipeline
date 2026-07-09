@@ -25,6 +25,7 @@ uv run loom-datagen generate --scale small --dry-run
 
 # Generate + load into BigQuery (idempotent WRITE_TRUNCATE)
 export LOOM_PROJECT_ID=<your-project>
+export LOOM_SOURCE_DATASET=dev_loom_sync   # env-prefixed dataset (#29); loom_sync for prod
 uv run loom-datagen generate --scale small
 
 # Confirm integrity + accepted values on the loaded data

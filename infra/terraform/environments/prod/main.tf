@@ -20,10 +20,12 @@ module "project" {
 }
 
 module "bigquery" {
-  source     = "../../modules/bigquery"
-  project_id = var.project_id
-  location   = var.bq_location
-  depends_on = [module.project]
+  source                 = "../../modules/bigquery"
+  project_id             = var.project_id
+  location               = var.bq_location
+  dataset_prefix         = "" # prod datasets are unprefixed
+  allow_dataset_deletion = false
+  depends_on             = [module.project]
 }
 
 module "iam" {
