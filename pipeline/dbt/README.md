@@ -24,7 +24,13 @@ set -a && source .env && set +a       # GCP_PROJECT_ID, BQ_LOCATION, DBT_*_DATAS
 
 dbt deps  --project-dir pipeline/dbt
 dbt debug --project-dir pipeline/dbt --profiles-dir pipeline/dbt
-dbt build --project-dir pipeline/dbt --profiles-dir pipeline/dbt
+
+# Seed first, then build excluding the seed node. The eBay landing table is BOTH a
+# seed and a declared source, and dbt has no seed->source dependency edge — seeding
+# separately (and excluding it from build) avoids a race where source tests run
+# before the table exists. (Goes away once Plan 04's ETL supplies ebay_transformed.)
+dbt seed  --project-dir pipeline/dbt --profiles-dir pipeline/dbt
+dbt build --project-dir pipeline/dbt --profiles-dir pipeline/dbt --exclude transformed_competitor_data
 ```
 
 ## Datasets (env-prefixed, #29)

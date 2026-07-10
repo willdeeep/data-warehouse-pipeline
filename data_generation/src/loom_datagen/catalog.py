@@ -29,7 +29,9 @@ CATEGORIES = {
 def build_catalog(cfg, rng: np.random.Generator, fake):
     """Return (attrs, costs, prices) with a 1:1 item_id relationship and price >= cost."""
     n = cfg.n_products
-    ids = [f"ITEM-{i:06d}" for i in range(n)]
+    # Numeric SKU-style ids: the warehouse normalizes item_id -> INTEGER product keys,
+    # so ids must be integer-castable strings (still STRING-typed per source.yml).
+    ids = [str(100000 + i) for i in range(n)]
 
     main_cats = rng.choice(list(CATEGORIES), n)
     subs = [rng.choice(CATEGORIES[c]) for c in main_cats]
