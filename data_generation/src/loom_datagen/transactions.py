@@ -5,13 +5,6 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-_HEX = np.array(list("0123456789abcdef"))
-
-
-def _txn_id(rng: np.random.Generator) -> str:
-    return "TXN-" + "".join(_HEX[rng.integers(0, 16, size=12)])
-
-
 _COUPONS = [None, "SAVE10", "FREESHIP", "WELCOME"]
 _COUPON_P = [0.70, 0.10, 0.10, 0.10]
 _SHIPPING_OPTIONS = [0.0, 4.99, 9.99]
@@ -27,8 +20,9 @@ def build_transactions(cfg, rng: np.random.Generator, sessions: pd.DataFrame, pr
     headers: list[dict] = []
     lines: list[dict] = []
 
-    for _, sess in conv.iterrows():
-        txn_id = _txn_id(rng)
+    for i, (_, sess) in enumerate(conv.iterrows()):
+        # Numeric transaction ids: the warehouse casts transaction_id -> INTEGER.
+        txn_id = str(500_000_000 + i)
         k = int(rng.integers(1, 6))
         chosen = rng.choice(item_ids, k, replace=False)
         qtys = rng.integers(1, 4, k)
