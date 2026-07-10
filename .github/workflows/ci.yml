@@ -55,16 +55,17 @@ jobs:
       - run: cd pipeline/etl && uv run --with pytest --with requests-mock pytest -q
 
   dbt-parse:
-    if: false # TODO(Plan 03): enable once profiles/models are validated
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
-      - run: uv tool install dbt-bigquery
-      - run: cd pipeline/dbt && dbt deps && dbt parse
+      # dbt CLI ships in dbt-core; pin the runtime to Python 3.12 (dbt lags newer Pythons)
+      - run: uv tool install dbt-core --with dbt-bigquery --python 3.12
+      - run: dbt deps --project-dir pipeline/dbt
+      - run: dbt parse --project-dir pipeline/dbt --profiles-dir pipeline/dbt
         env:
-          GCP_PROJECT_ID: dummy
-          DBT_DEV_DATASET: dev_warehouse
+          GCP_PROJECT_ID: dummy # parse is offline; oauth needs no key
+          DBT_TARGET: dev
 
   dag-integrity:
     if: false # TODO(Plan 04): enable once the eBay DAG + deps are in place
