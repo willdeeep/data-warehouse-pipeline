@@ -75,3 +75,15 @@ models:
 #       +persist_docs:
 #         relation: true
 #         columns: true
+# Seeds: eBay competitor landing table (stand-in until the Plan 04 ETL supplies it).
+# transformed_competitor_data -> ebay_transformed in the target (warehouse) dataset.
+seeds:
+  loom:
+    raw_competitor_data:
+      +enabled: false          # raw is not needed as a warehouse table
+    transformed_competitor_data:
+      +alias: ebay_transformed
+      +column_types:
+        id: string
+        price: float64
+        transformation_timestamp: timestamp
