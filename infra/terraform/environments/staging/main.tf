@@ -5,19 +5,10 @@ provider "google" {
 
 # Authentication is Application Default Credentials (ADC):
 #   gcloud auth application-default login
-# No service-account keyfiles are used or committed.
-
-module "state" {
-  source            = "../../modules/state"
-  project_id        = var.project_id
-  state_bucket_name = var.state_bucket_name
-  location          = var.bq_location
-}
-
-module "project" {
-  source     = "../../modules/project"
-  project_id = var.project_id
-}
+#
+# `staging` is a THIN env: it only manages its env-prefixed datasets + buckets.
+# Project-global resources (state bucket, APIs, service accounts, WIF) are owned by the
+# `dev`/bootstrap env and reused here — so this root creates nothing that would collide.
 
 module "bigquery" {
   source                 = "../../modules/bigquery"
@@ -25,13 +16,13 @@ module "bigquery" {
   location               = var.bq_location
   dataset_prefix         = "stg_"
   allow_dataset_deletion = true
-  depends_on             = [module.project]
 }
 
-module "iam" {
-  source     = "../../modules/iam"
-  project_id = var.project_id
-  depends_on = [module.project]
+module "storage" {
+  source        = "../../modules/storage"
+  project_id    = var.project_id
+  location      = var.bq_location
+  bucket_prefix = "stg-"
 }
 
 # Orchestration runtime is deferred to Plan 05; the stub creates nothing.
@@ -39,23 +30,4 @@ module "orchestration" {
   source     = "../../modules/orchestration"
   project_id = var.project_id
   enabled    = false
-}
-
-module "storage" {
-  source     = "../../modules/storage"
-  project_id = var.project_id
-  location   = var.bq_location
-  buckets = {
-    dag_logs = {
-      name           = var.dag_logs_bucket
-      retention_days = 30
-      force_destroy  = true
-    }
-    dbt_artifacts = {
-      name           = var.dbt_artifacts_bucket
-      retention_days = 90
-      force_destroy  = true
-    }
-  }
-  depends_on = [module.project]
 }

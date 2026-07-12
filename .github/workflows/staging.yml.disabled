@@ -56,19 +56,13 @@ jobs:
           workload_identity_provider: ${{ vars.WIF_PROVIDER }}
           service_account: ${{ vars.DEPLOY_SA_EMAIL }}
       - uses: hashicorp/setup-terraform@v3
-      - name: Write staging tfvars
-        working-directory: infra/terraform/environments/staging
-        run: |
-          cat > terraform.tfvars <<EOF
-          project_id           = "${{ vars.GCP_PROJECT_ID }}"
-          region               = "${{ vars.GCP_REGION }}"
-          bq_location          = "${{ vars.BQ_LOCATION }}"
-          state_bucket_name    = "${{ vars.TF_STATE_BUCKET }}"
-          dag_logs_bucket      = "${{ vars.DAG_LOGS_BUCKET }}"
-          dbt_artifacts_bucket = "${{ vars.DBT_ARTIFACTS_BUCKET }}"
-          EOF
       - name: Terraform apply (staging)
         working-directory: infra/terraform/environments/staging
+        env:
+          TF_VAR_project_id: ${{ vars.GCP_PROJECT_ID }}
+          TF_VAR_region: ${{ vars.GCP_REGION }}
+          TF_VAR_bq_location: ${{ vars.BQ_LOCATION }}
+          TF_VAR_state_bucket_name: ${{ vars.TF_STATE_BUCKET }}
         run: |
           terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
           terraform apply -auto-approve -input=false
