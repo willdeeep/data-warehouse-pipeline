@@ -12,5 +12,6 @@ variable "enabled_apis" {
     "iam.googleapis.com",
     "iamcredentials.googleapis.com",
     "cloudresourcemanager.googleapis.com",
+    "serviceusage.googleapis.com",
   ]
 }

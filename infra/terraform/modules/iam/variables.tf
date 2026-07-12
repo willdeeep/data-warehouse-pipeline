@@ -27,8 +27,10 @@ variable "role_bindings" {
   default = [
     { sa = "loom-dbt", role = "roles/bigquery.dataEditor" },
     { sa = "loom-dbt", role = "roles/bigquery.jobUser" },
+    { sa = "loom-dbt", role = "roles/serviceusage.serviceUsageConsumer" },
     { sa = "loom-pipeline", role = "roles/bigquery.dataEditor" },
     { sa = "loom-pipeline", role = "roles/bigquery.jobUser" },
     { sa = "loom-pipeline", role = "roles/storage.objectAdmin" },
+    { sa = "loom-pipeline", role = "roles/serviceusage.serviceUsageConsumer" },
   ]
 }

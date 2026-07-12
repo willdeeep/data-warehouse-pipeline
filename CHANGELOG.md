@@ -32,5 +32,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 ### Security
 - Removed the committed service-account keyfile; standardised on OAuth2/ADC and
   Workload Identity Federation (no long-lived keys) (#3, #28).
+- Least-privilege service accounts get `serviceusage.serviceUsageConsumer` to run BigQuery
+  jobs; enabled the Service Usage API; documented the human ADC prerequisite (#35).
 
 [Unreleased]: https://github.com/willdeeep/data-warehouse-pipeline/commits/dev
