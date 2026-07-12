@@ -27,20 +27,15 @@ jobs:
 
       - uses: hashicorp/setup-terraform@v3
 
-      - name: Write prod tfvars from environment variables
-        working-directory: infra/terraform/environments/prod
-        run: |
-          cat > terraform.tfvars <<EOF
-          project_id           = "${{ vars.GCP_PROJECT_ID }}"
-          region               = "${{ vars.GCP_REGION }}"
-          bq_location          = "${{ vars.BQ_LOCATION }}"
-          state_bucket_name    = "${{ vars.TF_STATE_BUCKET }}"
-          dag_logs_bucket      = "${{ vars.DAG_LOGS_BUCKET }}"
-          dbt_artifacts_bucket = "${{ vars.DBT_ARTIFACTS_BUCKET }}"
-          EOF
-
+      # prod is a thin env: only its unprefixed datasets + buckets. Config comes from
+      # TF_VAR_* (mirrors .env); project-global resources are owned by the bootstrap/dev env.
       - name: Terraform apply (prod)
         working-directory: infra/terraform/environments/prod
+        env:
+          TF_VAR_project_id: ${{ vars.GCP_PROJECT_ID }}
+          TF_VAR_region: ${{ vars.GCP_REGION }}
+          TF_VAR_bq_location: ${{ vars.BQ_LOCATION }}
+          TF_VAR_state_bucket_name: ${{ vars.TF_STATE_BUCKET }}
         run: |
           terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
           terraform apply -auto-approve -input=false
