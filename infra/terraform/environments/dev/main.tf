@@ -6,6 +6,10 @@ provider "google" {
 # Authentication is Application Default Credentials (ADC):
 #   gcloud auth application-default login
 # No service-account keyfiles are used or committed.
+#
+# NOTE: `dev` doubles as the BOOTSTRAP env for a single-project setup — it owns the
+# project-global resources (state bucket, APIs, service accounts, WIF). `staging`/`prod`
+# only manage their env-prefixed datasets + buckets and reuse these globals.
 
 module "state" {
   source            = "../../modules/state"
@@ -51,20 +55,9 @@ module "github_wif" {
 }
 
 module "storage" {
-  source     = "../../modules/storage"
-  project_id = var.project_id
-  location   = var.bq_location
-  buckets = {
-    dag_logs = {
-      name           = var.dag_logs_bucket
-      retention_days = 30
-      force_destroy  = true
-    }
-    dbt_artifacts = {
-      name           = var.dbt_artifacts_bucket
-      retention_days = 90
-      force_destroy  = true
-    }
-  }
-  depends_on = [module.project]
+  source        = "../../modules/storage"
+  project_id    = var.project_id
+  location      = var.bq_location
+  bucket_prefix = "dev-"
+  depends_on    = [module.project]
 }

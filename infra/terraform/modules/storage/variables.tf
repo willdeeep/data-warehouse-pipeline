@@ -8,11 +8,20 @@ variable "location" {
   description = "GCS location for the buckets."
 }
 
+variable "bucket_prefix" {
+  type        = string
+  default     = ""
+  description = "Environment prefix for bucket names: 'dev-', 'stg-', or '' for prod."
+}
+
 variable "buckets" {
   type = map(object({
-    name           = string
     retention_days = number
     force_destroy  = bool
   }))
-  description = "GCS buckets keyed by logical name; each maps to a globally-unique bucket name."
+  description = "Buckets keyed by logical suffix; full name is <project>-<prefix><suffix>."
+  default = {
+    "dag-logs"      = { retention_days = 30, force_destroy = true }
+    "dbt-artifacts" = { retention_days = 90, force_destroy = true }
+  }
 }

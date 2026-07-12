@@ -48,49 +48,70 @@ infra/terraform/
 └── environments/{dev,staging,prod}/   # one Terraform root each
 ```
 
-Each environment is its own root module (its own `versions.tf` + backend). Datasets
-`raw`/`dev_warehouse`/`warehouse` names match `pipeline/dbt/models/sources/source.yml`.
+Each environment is its own root module (its own `versions.tf` + backend).
 
-## First run — bootstrap the remote state bucket
+### Global vs per-env (single-project layout)
 
-The state bucket is created by Terraform, so the first apply uses **local** state,
-then migrates:
+To let `dev`/`staging`/`prod` coexist in one project, resources split in two:
+
+- **Project-global** (state bucket, API enablement, service accounts, WIF) — created **once**
+  by the **`dev`/bootstrap** env. `staging`/`prod` reuse them and do **not** re-create them.
+- **Per-env** (BigQuery datasets + GCS buckets) — each env owns its own, name-prefixed:
+  `dev_`/`stg_` (datasets) and `dev-`/`stg-` (buckets); **prod is unprefixed**.
+
+### Configuration — `.env` → `TF_VAR_*` (no tfvars)
+
+Terraform variables come from the repo-root `.env` via `TF_VAR_*` (no hand-edited
+`terraform.tfvars`). Fill `.env`, then export it before any Terraform command:
+
+```bash
+cp .env.example .env && $EDITOR .env      # GCP_PROJECT_ID, TF_STATE_BUCKET, etc.
+set -a && source .env && set +a           # exposes TF_VAR_project_id, TF_VAR_state_bucket_name, ...
+```
+
+## First run — bootstrap (dev)
+
+The `dev` env creates the shared state bucket, so its first apply uses **local** state, then
+migrates to GCS:
 
 ```bash
 cd environments/dev
-cp terraform.tfvars.example terraform.tfvars   # fill in project_id + unique bucket names
-
-# 1. Backend is commented out in backend.tf — apply with local state:
-terraform init
-terraform apply                                 # creates state bucket, datasets, IAM, GCS
-
-# 2. Uncomment the backend block in backend.tf, set bucket = <your TF_STATE_BUCKET>:
-terraform init -migrate-state                    # moves local state into GCS
+set -a && source ../../../../.env && set +a
+# backend.tf is uncommented (partial config); bootstrap with local state first:
+terraform init -backend=false && terraform apply     # state bucket, APIs, SAs, WIF, dev datasets/buckets
+terraform init -migrate-state -backend-config="bucket=$TF_STATE_BUCKET"   # move state to GCS
 ```
 
-Repeat per environment (`staging`, `prod`), each with its own `terraform.tfvars` and
-backend `prefix`.
+## Deploying staging / prod (thin envs)
+
+The state bucket + SAs already exist (dev), so these just create their own datasets/buckets:
+
+```bash
+cd environments/staging   # or prod
+set -a && source ../../../../.env && set +a
+terraform init -backend-config="bucket=$TF_STATE_BUCKET"
+terraform apply
+```
 
 ## Everyday use
 
 ```bash
-cd environments/dev
-terraform fmt -recursive ../..
-terraform validate
-terraform plan -var-file=terraform.tfvars
-terraform apply -var-file=terraform.tfvars
+set -a && source .env && set +a
+terraform -chdir=infra/terraform/environments/dev plan
+terraform -chdir=infra/terraform/environments/dev apply
 ```
 
 ## What gets created
 
-| Module | Resources |
-|--------|-----------|
-| project | Enables BigQuery, Storage, IAM, Cloud Resource Manager APIs |
-| bigquery | `loom_sync`, `dev_warehouse`, `warehouse` datasets |
-| iam | `loom-dbt`, `loom-pipeline` SAs + BigQuery/Storage role bindings |
-| storage | `dag_logs` (30d), `dbt_artifacts` (90d) buckets |
-| state | Versioned, `prevent_destroy` remote-state bucket |
-| orchestration | **Nothing yet** — un-stubbed in Plan 05 |
+| Scope | Module | Resources |
+|-------|--------|-----------|
+| global (dev only) | project | Enables BigQuery, Storage, IAM, Service Usage, CRM APIs |
+| global (dev only) | iam | `loom-dbt`, `loom-pipeline` SAs + role bindings |
+| global (dev only) | github_wif | Workload Identity pool/provider for keyless CI deploys |
+| global (dev only) | state | Versioned, `prevent_destroy` remote-state bucket |
+| per-env | bigquery | `<prefix>loom_sync`, `<prefix>warehouse` datasets |
+| per-env | storage | `<project>-<prefix>dag-logs` (30d), `-dbt-artifacts` (90d) buckets |
+| per-env | orchestration | **Nothing yet** — un-stubbed in Plan 05 |
 
 ## Orchestration is deferred
 
