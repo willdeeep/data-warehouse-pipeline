@@ -133,8 +133,6 @@ models:
           - not_null
       - name: source
         description: "Traffic source (e.g., google, meta, tiktok)"
-      - name: source_category
-        description: "Standardized source category (Search, Social, Email, Programmatic, etc.)"
       - name: dbt_updated_at
         description: "Timestamp when this record was last updated by dbt."
       - name: dbt_created_at
@@ -362,8 +360,6 @@ models:
         description: "Quantity of items returned"
       - name: return_date
         description: "Date when return was processed"
-      - name: date
-        description: "Transaction date (source metadata)"
       - name: dbt_updated_at
         description: "dbt processing timestamp"
       - name: dbt_valid_from
@@ -372,10 +368,6 @@ models:
         description: "Boolean indicating if item has any returns"
       - name: return_rate_pct
         description: "Percentage of items returned vs originally purchased"
-      - name: dbt_updated_at
-        description: "Timestamp when this record was last updated by dbt."
-      - name: dbt_created_at
-        description: "Timestamp when this record was first created by dbt."
 
 
   - name: fact_advertising
