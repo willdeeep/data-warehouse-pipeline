@@ -20,6 +20,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 - dbt warehouse builds green end-to-end on live BigQuery (staging → intermediate → marts,
   `PASS=182 WARN=2 ERROR=0`); OAuth/ADC profiles, eBay landing seed, and a build-validation
   summary (#11, #12, #13).
+- Top-level README with a verified "run it yourself" quickstart + architecture diagram (#23).
 
 ### Changed
 - Rebuilt from the iOSphere training repo: renamed Prism → Loom, restructured into
