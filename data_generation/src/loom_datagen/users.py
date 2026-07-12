@@ -8,9 +8,9 @@ import pandas as pd
 
 def build_users(cfg, rng: np.random.Generator, fake) -> pd.DataFrame:
     n = cfg.n_users
-    # Numeric CRM ids: the warehouse casts user_crm_id -> INTEGER (stg_users even filters out
-    # non-numeric ids), so these must be integer-castable strings.
-    crm = [str(700_000 + i) for i in range(n)]
+    # Numeric, exactly-7-digit CRM ids: the warehouse casts user_crm_id -> INTEGER and
+    # stg_users filters `LENGTH(...) = 7`, so 6-digit ids get silently dropped (empty dim_users).
+    crm = [str(1_000_000 + i) for i in range(n)]
 
     reg = pd.to_datetime(cfg.start_date) + pd.to_timedelta(rng.integers(0, 900, n), unit="D")
 
