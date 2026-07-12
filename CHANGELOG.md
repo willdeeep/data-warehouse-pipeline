@@ -17,10 +17,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
   WIF-gated production deploy workflow, and a disabled staging workflow (#28).
 - Workload Identity Federation Terraform module for keyless GitHub Actions → GCP deploys (#28).
 - Tag-derived dynamic versioning (`uv-dynamic-versioning`) and this changelog (#31).
+- dbt warehouse builds green end-to-end on live BigQuery (staging → intermediate → marts,
+  `PASS=182 WARN=2 ERROR=0`); OAuth/ADC profiles, eBay landing seed, and a build-validation
+  summary (#11, #12, #13).
 
 ### Changed
 - Rebuilt from the iOSphere training repo: renamed Prism → Loom, restructured into
   `infra/` `data_generation/` `pipeline/`, adopted `uv` + Python 3.13+ (#1, #2, #3, #4).
+- Env-prefixed BigQuery datasets so dev/staging/prod coexist in one project — `dev_`/`stg_`,
+  prod bare (#29).
+- dbt runtime pinned to Python 3.12 (dbt lags newer Pythons); datagen emits numeric-castable
+  ids to match the warehouse's INTEGER natural keys (#12).
 
 ### Security
 - Removed the committed service-account keyfile; standardised on OAuth2/ADC and
