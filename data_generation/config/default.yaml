@@ -1,0 +1,26 @@
+# Scale presets for `loom-datagen generate --scale <name>`.
+# Values override DatagenConfig fields. project_id always comes from env (LOOM_PROJECT_ID).
+
+small:
+  n_products: 200
+  n_users: 500
+  start_date: "2024-01-01"
+  end_date: "2024-06-30"
+  avg_sessions_per_day: 60
+  conversion_rate: 0.03
+
+medium:
+  n_products: 500
+  n_users: 2000
+  start_date: "2023-01-01"
+  end_date: "2024-12-31"
+  avg_sessions_per_day: 400
+  conversion_rate: 0.03
+
+large:
+  n_products: 2000
+  n_users: 10000
+  start_date: "2022-01-01"
+  end_date: "2024-12-31"
+  avg_sessions_per_day: 1500
+  conversion_rate: 0.028

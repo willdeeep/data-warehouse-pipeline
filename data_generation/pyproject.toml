@@ -1,0 +1,39 @@
+[project]
+name = "loom-datagen"
+dynamic = ["version"] # tag-derived via uv-dynamic-versioning (issue #31)
+description = "Standalone Faker-based synthetic data generator for the Loom BigQuery warehouse"
+requires-python = ">=3.13"
+dependencies = [
+  "faker>=30",
+  "pandas>=2.2",
+  "numpy>=2.0",
+  "pyarrow>=17",
+  "google-cloud-bigquery>=3.25",
+  "pydantic-settings>=2.5",
+  "pyyaml>=6",
+  "typer>=0.12",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-cov>=5"]
+
+[project.scripts]
+loom-datagen = "loom_datagen.cli:app"
+
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+fallback-version = "0.0.0" # used when no git tag is present (e.g. shallow CI clone)
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/loom_datagen"]
+
+[tool.pytest.ini_options]
+markers = ["integration: requires BigQuery + ADC"]
+addopts = "-m 'not integration'"
+testpaths = ["tests"]

@@ -2,12 +2,13 @@ version: 2
 
 sources:
 - name: loom_sync
-  database: loom-insights
-  schema: loom_sync
+  # database omitted -> uses the profile's project (GCP_PROJECT_ID); schema env-prefixed per env (#29)
+  schema: "{{ env_var('DBT_SOURCE_DATASET', 'loom_sync') }}"
   description: 'Source database containing e-commerce and marketing data from the Loom platform'
-  freshness:
-    warn_after: {count: 24, period: hour}  # Warn if data is older than 24 hours
-    error_after: {count: 48, period: hour} # Error if data is older than 48 hours
+  config:
+    freshness:  # moved under config (dbt 1.11 deprecation)
+      warn_after: {count: 24, period: hour}  # Warn if data is older than 24 hours
+      error_after: {count: 48, period: hour} # Error if data is older than 48 hours
   tables:
 
   - name: adplatform_data
@@ -461,8 +462,8 @@ sources:
 
 
 - name: ebay
-  database: loom-insights
-  schema: dev_warehouse
+  # eBay landing lives in the env warehouse dataset (dev_warehouse / warehouse) (#29)
+  schema: "{{ env_var('DBT_WAREHOUSE_DATASET', 'warehouse') }}"
   description: 'eBay data loaded from external pipeline'
   tables:
     - name: ebay_transformed
