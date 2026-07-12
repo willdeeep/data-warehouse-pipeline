@@ -11,11 +11,28 @@ the pipeline and the data generator run against.
 gcloud auth login
 gcloud auth application-default login
 gcloud config set project <your-project-id>
+gcloud auth application-default set-quota-project <your-project-id>
 ```
 
 Terraform uses your Application Default Credentials. No service-account keyfiles are
 used or committed. (The CI/deploy service accounts this module creates are for GitHub
 Actions later — see Plan 06.)
+
+### Prerequisite: your identity needs project permissions
+
+The account you use for ADC must be **Owner** on the project — or **Editor** plus
+`roles/serviceusage.serviceUsageConsumer` (for `serviceusage.services.use`, needed to run
+BigQuery jobs and set a quota project). If you created the project you're already Owner.
+
+> ⚠️ **Common gotcha:** `gcloud auth login` and `gcloud auth application-default login` open a
+> browser account picker independently — it's easy to select a *different* Google account for
+> ADC than the one that owns the project. If you hit
+> `does not have the "serviceusage.services.use" permission`, you almost certainly authenticated
+> ADC as the wrong account. Re-run `gcloud auth application-default login` and pick the owner
+> account (confirm with `gcloud auth list` and `gcloud config get-value account`).
+
+The `loom-dbt` / `loom-pipeline` service accounts get `serviceUsageConsumer` too, so they can
+run BigQuery jobs when used by CI/deploy.
 
 ## Layout
 
