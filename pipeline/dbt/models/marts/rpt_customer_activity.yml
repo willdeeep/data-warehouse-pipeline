@@ -2,7 +2,13 @@ version: 2
 
 models:
   - name: rpt_customer_activity
-    description: "MART: Comprehensive customer activity tracking leveraging SCD Type 2 user dimensions. Provides complete customer journey analysis with historical context for profile changes, transactions, and sessions."
+    description: >
+      SCD-chronology mart for customer lifecycle analysis. One row per customer activity
+      event, unioning (a) profile-change events derived from dim_users SCD2 history and
+      (b) transaction events with customer state captured point-in-time as of the purchase.
+      Grain intentionally overlaps rpt_transactions (both carry transaction rows) but answers
+      a different question — customer journey / LTV / Loom+ status change over time, not
+      line-item profitability. Consumed by lifecycle and retention dashboards.
     columns:
       - name: user_crm_id
         description: "Customer identifier"
