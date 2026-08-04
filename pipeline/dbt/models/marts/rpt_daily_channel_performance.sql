@@ -12,10 +12,9 @@ WITH base AS (
         -- Acquisition & Ad metrics
         dap.channel_type AS channel,         -- e.g., Paid Social, Search, etc.
         dap.platform_name AS platform,
-        fa.clicks,                           -- Note: Will repeat for each device if ad data is not device-specific
-        dd.device_type AS device,
-        fa.impressions,                      -- Note: Will repeat for each device if ad data is not device-specific
-        fa.cost AS ad_spend,                 -- Note: Will repeat for each device if ad data is not device-specific
+        fa.clicks,
+        fa.impressions,
+        fa.cost AS ad_spend,
 
         -- Engagement
         COUNT(DISTINCT fs.session_id) AS sessions,
@@ -40,8 +39,6 @@ WITH base AS (
     LEFT JOIN {{ ref('fct_sessions') }} fs
         ON fa.date_key = fs.date_key
         AND fa.platform_key = fs.platform_key
-    LEFT JOIN {{ ref('dim_devices') }} dd
-        ON fs.device_key = dd.device_key
     LEFT JOIN {{ ref('dim_users') }} du
         ON fs.user_crm_id = du.user_crm_id AND du.is_current = TRUE
     LEFT JOIN {{ ref('fct_transactions') }} ft
@@ -56,8 +53,8 @@ WITH base AS (
     {% endif %}
     GROUP BY
         d.date, week_number, d.day_of_week, d.month, d.year,
-        dap.channel_type, dap.platform_name, dd.device_type, fa.clicks, fa.impressions, fa.cost
+        dap.channel_type, dap.platform_name, fa.clicks, fa.impressions, fa.cost
 )
 
 SELECT * FROM base
-ORDER BY date, channel, platform, device
+ORDER BY date, channel, platform
