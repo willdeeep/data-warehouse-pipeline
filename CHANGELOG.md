@@ -7,6 +7,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ## [Unreleased]
 
+### Added
+- `AGENTS.md` — top-level agent onboarding guide for the repository.
+
+### Changed
+- Renamed the eBay auth env var `CLIENT_SECRET` → `CLIENT_TOKEN` in `.env.example`.
+
 ## [0.1.0] — 2026-07-12
 
 ### Added
