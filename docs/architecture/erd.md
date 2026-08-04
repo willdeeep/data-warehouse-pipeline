@@ -137,7 +137,7 @@ Our new architecture implements dimensional modeling principles with proper rela
 // Modern Data Warehouse - Layered architecture with proper relationships
 Project loom_modern {
   database_type: 'BigQuery'
-  Note: 'Modern data warehouse with staging, intermediate, and mart layers'
+  Note: 'Modern data warehouse with staging, core, and mart layers'
 }
 
 //============================================================================
@@ -302,7 +302,7 @@ Table dim_date {
   Note: 'Dimension: Date dimension for time-based analysis'
 }
 
-Table fact_transactions {
+Table fct_transactions {
   transaction_product_id string [pk, note: 'Composite key: transaction_id + item_id']
   date_key integer [ref: > dim_date.date_key, not null]
   user_crm_id integer [ref: > dim_users.user_crm_id]
@@ -323,7 +323,7 @@ Table fact_transactions {
   Note: 'Fact: Transaction line items with product relationships and return status'
 }
 
-Table fact_sessions {
+Table fct_sessions {
   session_id string [pk, note: 'Natural key - unique session identifier']
   date_key integer [ref: > dim_date.date_key, not null]
   user_crm_id integer [ref: > dim_users.user_crm_id]
@@ -353,7 +353,7 @@ Table fact_sessions {
 // MARTS LAYER - Business-ready analytics datasets
 //============================================================================
 
-Table customer_activity_mart {
+Table rpt_customer_activity {
   user_crm_id integer [pk, note: 'Links to dim_users.user_crm_id']
   activity_type string [note: 'profile_change|transaction']
   activity_date date [not null]
@@ -426,8 +426,8 @@ Table marketing_metrics_mart {
   Note: 'Mart: Marketing performance with multi-touch attribution'
 }
 
-Table transactions_mart {
-  transaction_product_id string [pk, note: 'Composite key from fact_transactions']
+Table rpt_transactions {
+  transaction_product_id string [pk, note: 'Composite key from fct_transactions']
   date_key integer [ref: > dim_date.date_key, not null]
   user_crm_id integer [note: 'nullable for guest checkouts']
   user_cookie_id string
@@ -486,15 +486,15 @@ Ref: stg_funnel_events.user_crm_id > stg_users.user_crm_id
 Ref: stg_funnel_events.session_id > stg_sessions.session_id
 Ref: stg_funnel_events.item_id > stg_product_attributes.item_id
 
-Ref: fact_transactions.user_crm_id > dim_users.user_crm_id
-Ref: fact_transactions.date_key > dim_date.date_key
-Ref: fact_transactions.product_id > dim_products.product_id
-Ref: fact_sessions.user_crm_id > dim_users.user_crm_id
-Ref: fact_sessions.date_key > dim_date.date_key
+Ref: fct_transactions.user_crm_id > dim_users.user_crm_id
+Ref: fct_transactions.date_key > dim_date.date_key
+Ref: fct_transactions.product_id > dim_products.product_id
+Ref: fct_sessions.user_crm_id > dim_users.user_crm_id
+Ref: fct_sessions.date_key > dim_date.date_key
 
-Ref: customer_activity_mart.user_crm_id > dim_users.user_crm_id
-Ref: transactions_mart.date_key > dim_date.date_key
-Ref: transactions_mart.user_crm_id > dim_users.user_crm_id
+Ref: rpt_customer_activity.user_crm_id > dim_users.user_crm_id
+Ref: rpt_transactions.date_key > dim_date.date_key
+Ref: rpt_transactions.user_crm_id > dim_users.user_crm_id
 ```
 
 ## 🔄 Key Improvements in Modern Structure
@@ -560,7 +560,7 @@ SELECT
   user_crm_id,
   total_orders,
   total_revenue
-FROM customer_activity_mart
+FROM rpt_customer_activity
 WHERE last_purchase_date >= '2024-01-01'
 -- Scan: 1 optimized table, No JOINs, Pre-calculated metrics
 ```

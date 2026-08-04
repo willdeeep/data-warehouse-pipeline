@@ -9,7 +9,7 @@ Records the first green end-to-end `dbt build` of the Loom warehouse against Fak
 Done. PASS=182 WARN=2 ERROR=0 SKIP=0 NO-OP=0 TOTAL=184
 ```
 
-- **29 models** (10 staging views + 19 intermediate/mart tables), **155 data tests**, **1 seed**, **11 sources**.
+- **29 models** (10 staging views + 19 core/mart tables), **155 data tests**, **1 seed**, **11 sources**.
 - **0 errors, 0 skips.** The only 2 warnings are intentional (below).
 
 ## Layers
@@ -18,8 +18,8 @@ Done. PASS=182 WARN=2 ERROR=0 SKIP=0 NO-OP=0 TOTAL=184
 |-------|----------|
 | sources | `loom_sync` (10 tables) + `ebay.ebay_transformed` (seeded stand-in) |
 | staging | `stg_*` (views): adplatform, funnel events, sessions, transactions(+items), products (attributes/costs/list prices), returns, users |
-| intermediate | dims: `dim_date/devices/medium/source/geo/products/users/ad_platform`, `ebay_dim_brand/category`; facts: `fact_sessions/transactions/advertising`, `ebay_fact_items` |
-| marts | `customer_activity_mart`, `transactions_mart`, `marketing_metrics_mart`, `mart_daily_channel_performance` |
+| core | dims: `dim_date/devices/medium/source/geo/products/users/ad_platform`, `ebay_dim_brand/category`; facts: `fct_sessions/transactions/advertising`, `ebay_fct_items` |
+| marts | `rpt_customer_activity`, `rpt_transactions`, `marketing_metrics_mart`, `rpt_daily_channel_performance` |
 
 ## Accepted warnings (2)
 

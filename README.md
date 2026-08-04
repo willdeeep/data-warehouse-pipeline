@@ -4,7 +4,7 @@ A portfolio data-engineering project: a synthetic e-commerce analytics warehouse
 **Loom** (a fictional online fashion retailer), built to be **run end-to-end by anyone** with
 their own GCP project. Infrastructure-as-code provisions the platform, a standalone Faker
 generator seeds realistic source data into BigQuery, and **dbt** builds a dimensional warehouse
-across staging → intermediate → marts.
+across staging → core → marts.
 
 Everything is driven by `.env` + `gcloud` OAuth2 (no service-account keyfiles): clone →
 `terraform apply` → seed → `dbt build` → a populated, tested warehouse.
@@ -16,7 +16,7 @@ flowchart LR
   TF[Terraform infra/] -->|provisions| BQ[(BigQuery loom datasets)]
   DG[Faker seeder] -->|one-time load| BQ
   SEED[eBay competitor seed] --> BQ
-  BQ --> STG[dbt staging] --> INT[dbt intermediate] --> MART[dbt marts]
+  BQ --> STG[dbt staging] --> INT[dbt core] --> MART[dbt marts]
   WIF[Workload Identity Federation] -.->|keyless CI deploy| TF
 ```
 
@@ -74,7 +74,7 @@ intentional — real-world messy eBay competitor data). Explore the lineage with
 |------|---------|
 | `infra/terraform/` | IaC — GCP data platform (datasets, IAM, GCS, WIF, remote state). Not containerised. |
 | `data_generation/` | Standalone Faker generator (`loom-datagen`). Run **once**, post-Terraform. **Not** part of the pipeline. |
-| `pipeline/dbt/` | The dbt warehouse (staging → intermediate → marts) + seeds + OAuth profiles. |
+| `pipeline/dbt/` | The dbt warehouse (staging → core → marts) + seeds + OAuth profiles. |
 | `pipeline/dags/`, `pipeline/etl/` | Airflow DAGs + eBay ETL (in progress — Plan 04). |
 | `docs/` | Architecture, ERD, build summary, release model. |
 | `.github/workflows/` | CI matrix + WIF-gated production deploy. |
