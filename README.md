@@ -65,6 +65,12 @@ You now have a populated warehouse: `dbt build` finishes `ERROR=0` (the two `WAR
 intentional — real-world messy eBay competitor data). Explore the lineage with
 `dbt docs generate --project-dir pipeline/dbt && dbt docs serve --project-dir pipeline/dbt`.
 
+> **Task-runner shortcut:** the repo ships an [`invoke`](https://www.pyinvoke.org/) task runner
+> (`tasks.py`). After `uv sync`, `uv run invoke build` (or `seed`, `run`, `test`, `refresh`,
+> `build-container`) auto-loads `.env` — which carries the local `DBT_PROFILES_DIR`/`DBT_PROJECT_DIR`
+> (`pipeline/dbt`) — so dbt resolves the project + profiles with no manual `source .env` or flags.
+> `uv run invoke --list` shows them all.
+
 > The eBay competitor data is currently loaded as a dbt **seed** stand-in. The live eBay ETL
 > (Airflow) and the orchestration-runtime decision are on the roadmap (Plans 04–05).
 
@@ -91,6 +97,7 @@ uv sync                                   # root tooling (Python 3.13)
 uvx ruff@0.14.2 check data_generation     # lint (matches CI + pre-commit)
 cd data_generation && uv run pytest       # generator unit tests
 pre-commit install                        # local quality gate (ruff, terraform fmt/validate)
+uv run invoke --list                      # task runner — dbt/build shortcuts (see tasks.py)
 ```
 
 Release & branch model (dev → staging → main, WIF deploys, tag-derived versioning) is

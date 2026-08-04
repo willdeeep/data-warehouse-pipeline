@@ -9,6 +9,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ### Added
 - `AGENTS.md` — top-level agent onboarding guide for the repository.
+- `invoke` task runner (`tasks.py`): `invoke build`/`seed`/`run`/`test`/`refresh`/`build-container`
+  wrap the common dbt/container commands and auto-load `.env`.
+- Local-first dbt paths: `.env`/`.env.example` now set `DBT_PROFILES_DIR`/`DBT_PROJECT_DIR` to
+  `pipeline/dbt`; the Airflow container overrides them to `/opt/airflow/dbt` in
+  `pipeline/docker-compose.yaml`. dbt runs locally with no `--profiles-dir`/`--project-dir` flags.
 
 ### Changed
 - Renamed the eBay auth env var `CLIENT_SECRET` → `CLIENT_TOKEN` in `.env.example`.
