@@ -9,6 +9,10 @@ requires-python = ">=3.13"
 # [tool.uv.workspace]
 # members = ["data_generation"]
 
+# Task runner: `uv run invoke --list` (tasks defined in tasks.py).
+[dependency-groups]
+dev = ["invoke>=2.2"]
+
 [tool.ruff]
 target-version = "py313"
 line-length = 100
