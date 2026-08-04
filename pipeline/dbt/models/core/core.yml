@@ -210,7 +210,7 @@ models:
         description: "Timestamp when this record was first created by dbt."
 
   # FACT TABLES
-  - name: fact_sessions
+  - name: fct_sessions
     description: "INTERMEDIATE MODEL: Session fact table for digital analytics and user behavior analysis. Contains session-level metrics with dimensional foreign keys including page views, conversion flags, and bounce detection."
     columns:
       - name: session_id
@@ -288,7 +288,7 @@ models:
         description: "Timestamp when this record was first created by dbt."
       
 
-  - name: fact_transactions
+  - name: fct_transactions
     description: "INTERMEDIATE MODEL: Transaction fact table for revenue analysis and business performance metrics. Contains transaction line item data with dimensional foreign keys including revenue, cost, profit calculations, and return tracking."
     columns:
       - name: transaction_product_id
@@ -318,7 +318,7 @@ models:
         description: "Foreign key to session fact"
         tests:
           - relationships:
-              to: ref('fact_sessions')
+              to: ref('fct_sessions')
               field: session_id
               config:
                 severity: warn
@@ -370,7 +370,7 @@ models:
         description: "Percentage of items returned vs originally purchased"
 
 
-  - name: fact_advertising
+  - name: fct_advertising
     description: "INTERMEDIATE MODEL: Advertising fact table for marketing performance analysis. Contains ad platform metrics with dimensional foreign keys including impressions, clicks, cost, and calculated CTR metrics."
     columns:
       - name: ad_key

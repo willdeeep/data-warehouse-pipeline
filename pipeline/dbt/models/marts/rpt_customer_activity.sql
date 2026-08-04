@@ -1,6 +1,6 @@
 /*
 ===================================================================================
-MART: customer_activity_mart
+MART: rpt_customer_activity
 ===================================================================================
 
 PURPOSE:
@@ -12,7 +12,7 @@ GRAIN:
 
 SOURCES:
     - dim_users (SCD Type 2 for historical customer profiles)
-    - fact_transactions (transaction events)
+    - fct_transactions (transaction events)
     - dim_products (for product context)
     - dim_date (for temporal analysis)
 
@@ -123,7 +123,7 @@ transaction_activity AS (
         
         u.user_surrogate_key AS customer_version_key
         
-    FROM {{ ref('fact_transactions') }} ft
+    FROM {{ ref('fct_transactions') }} ft
     -- Point-in-time join to get customer state at transaction date
     INNER JOIN {{ ref('dim_users') }} u ON ft.user_crm_id = u.user_crm_id
         AND PARSE_DATE('%Y%m%d', CAST(ft.date_key AS STRING)) >= CAST(u.valid_from AS DATE)

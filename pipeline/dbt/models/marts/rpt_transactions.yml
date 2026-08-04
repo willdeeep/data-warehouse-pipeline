@@ -1,8 +1,8 @@
 version: 2
 
 models:
-  - name: transactions_mart
-    description: "Comprehensive transaction mart with profit analysis and refund tracking. Built on top of the intermediate layer (fact_transactions, dim_date, dim_users, dim_products, fact_sessions) to provide business-ready transaction analytics."
+  - name: rpt_transactions
+    description: "Comprehensive transaction mart with profit analysis and refund tracking. Built on top of the core layer (fct_transactions, dim_date, dim_users, dim_products, fct_sessions) to provide business-ready transaction analytics."
     columns:
       - name: transaction_product_id
         description: "Unique identifier for each transaction product line item"

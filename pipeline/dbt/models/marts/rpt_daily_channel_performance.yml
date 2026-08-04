@@ -1,7 +1,7 @@
 version: 2
 
 models:
-  - name: mart_daily_channel_performance
+  - name: rpt_daily_channel_performance
     description: >
       Daily performance mart aggregating advertising, session, and transaction metrics by date, channel, platform, and device. 
       Includes acquisition, engagement, and revenue KPIs for multi-channel marketing analysis.

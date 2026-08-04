@@ -11,7 +11,7 @@ and marts. These tests ensure proper temporal logic and data integrity.
 -- TEST 1: CUSTOMER ACTIVITY MART SCD VALIDATION
 -- ===================================================================================
 
--- Validate that point-in-time joins in customer_activity_mart work correctly
+-- Validate that point-in-time joins in rpt_customer_activity work correctly
 WITH transaction_scd_validation AS (
     SELECT 
         cam.user_crm_id,
@@ -30,7 +30,7 @@ WITH transaction_scd_validation AS (
             THEN 'VALID_SCD_JOIN'
             ELSE 'INVALID_SCD_JOIN'
         END AS scd_join_validity
-    FROM {{ ref('customer_activity_mart') }} cam
+    FROM {{ ref('rpt_customer_activity') }} cam
     LEFT JOIN {{ ref('dim_users') }} u ON cam.customer_version_key = u.user_surrogate_key
    WHERE cam.activity_type = 'transaction' 
        AND cam.user_crm_id IS NOT NULL
@@ -46,7 +46,7 @@ profile_change_validation AS (
         cam.customer_version_key,
         -- Check if this matches an actual SCD record transition
         COUNT(*) OVER (PARTITION BY cam.user_crm_id ORDER BY cam.activity_date) as sequence_check
-    FROM {{ ref('customer_activity_mart') }} cam
+    FROM {{ ref('rpt_customer_activity') }} cam
     WHERE cam.activity_type = 'profile_change' 
         AND cam.user_crm_id IS NOT NULL
     LIMIT 500
@@ -58,7 +58,7 @@ SELECT
     CAST(cam.activity_date AS STRING) as activity_date,
     CAST(cam.customer_version_key AS STRING) as customer_version_key,
     'INVALID_SCD_JOIN' as failure_reason
-FROM {{ ref('customer_activity_mart') }} cam
+FROM {{ ref('rpt_customer_activity') }} cam
 LEFT JOIN {{ ref('dim_users') }} u ON cam.customer_version_key = u.user_surrogate_key
 WHERE cam.activity_type = 'transaction' 
     AND cam.user_crm_id IS NOT NULL
@@ -75,7 +75,7 @@ SELECT
     'N/A' as activity_date,
     'N/A' as customer_version_key,
     'INVALID_CUSTOMER_SEQUENCE' as failure_reason
-FROM {{ ref('customer_activity_mart') }} cam
+FROM {{ ref('rpt_customer_activity') }} cam
 GROUP BY cam.user_crm_id
 HAVING COUNT(*) > 1 
     AND MAX(cam.customer_activity_sequence) != COUNT(*)

@@ -31,20 +31,20 @@ WITH base AS (
         SUM(COALESCE(ft.product_quantity, 0)) AS item_quantity,
         SUM(COALESCE(ft.product_price * ft.product_quantity, 0)) AS item_price_total
 
-    FROM {{ ref('fact_advertising') }} fa
+    FROM {{ ref('fct_advertising') }} fa
     LEFT JOIN {{ ref('dim_date') }} d
         ON fa.date_key = d.date_key
     LEFT JOIN {{ ref('dim_ad_platform') }} dap
         ON fa.platform_key = dap.platform_key
     -- Join to sessions on date and platform (device comes from sessions)
-    LEFT JOIN {{ ref('fact_sessions') }} fs
+    LEFT JOIN {{ ref('fct_sessions') }} fs
         ON fa.date_key = fs.date_key
         AND fa.platform_key = fs.platform_key
     LEFT JOIN {{ ref('dim_devices') }} dd
         ON fs.device_key = dd.device_key
     LEFT JOIN {{ ref('dim_users') }} du
         ON fs.user_crm_id = du.user_crm_id AND du.is_current = TRUE
-    LEFT JOIN {{ ref('fact_transactions') }} ft
+    LEFT JOIN {{ ref('fct_transactions') }} ft
         ON fs.session_id = ft.session_id
         AND fa.date_key = ft.date_key
 
