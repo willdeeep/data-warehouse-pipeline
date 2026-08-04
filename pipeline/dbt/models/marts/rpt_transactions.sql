@@ -1,6 +1,6 @@
 /*
 ===================================================================================
-MART: transactions_mart
+MART: rpt_transactions
 ===================================================================================
 
 PURPOSE:
@@ -11,11 +11,11 @@ GRAIN:
     One row per transaction line item (transaction_id + product_id combination)
 
 SOURCES:
-    - fact_transactions (intermediate layer)
-    - dim_date (intermediate layer)
-    - dim_users (intermediate layer) 
-    - dim_products (intermediate layer)
-    - fact_sessions (intermediate layer)
+    - fct_transactions (core layer)
+    - dim_date (core layer)
+    - dim_users (core layer) 
+    - dim_products (core layer)
+    - fct_sessions (core layer)
 
 Key Dimensions:
     - Date of transaction and year/month/day values linked in from dim_date
@@ -23,8 +23,8 @@ Key Dimensions:
     - User CRM ID from dim_users (null if guest checkout)
     - User Cookie ID for anonymous user tracking and session analysis
     - Loom+ status from dim_users (null if not a registered user and/or not loom plus)
-    - Session ID from fact_sessions for attribution analysis
-    - Marketing campaign and traffic source from fact_sessions
+    - Session ID from fct_sessions for attribution analysis
+    - Marketing campaign and traffic source from fct_sessions
 
 KEY METRICS:
     - Revenue and cost calculations
@@ -102,7 +102,7 @@ SELECT
       WHEN ft.return_status = 'Refund' THEN ft.product_price * COALESCE(ft.return_quantity, 0)
       ELSE 0
     END AS net_revenue
-FROM {{ ref('fact_transactions') }} ft
+FROM {{ ref('fct_transactions') }} ft
 LEFT JOIN {{ ref('dim_date') }} d ON ft.date_key = d.date_key
 -- Join to current version of user dimension using SCD Type 2 logic
 LEFT JOIN {{ ref('dim_users') }} u ON ft.user_crm_id = u.user_crm_id AND u.is_current = TRUE

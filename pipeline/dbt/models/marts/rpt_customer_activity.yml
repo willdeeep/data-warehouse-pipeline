@@ -1,7 +1,7 @@
 version: 2
 
 models:
-  - name: customer_activity_mart
+  - name: rpt_customer_activity
     description: "MART: Comprehensive customer activity tracking leveraging SCD Type 2 user dimensions. Provides complete customer journey analysis with historical context for profile changes, transactions, and sessions."
     columns:
       - name: user_crm_id

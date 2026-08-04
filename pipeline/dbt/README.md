@@ -1,7 +1,7 @@
 # Loom dbt project
 
 Builds the warehouse from `loom_sync` source data (Faker-seeded) into staging →
-intermediate → marts. BigQuery, OAuth/ADC auth, env-prefixed datasets (#29).
+core → marts. BigQuery, OAuth/ADC auth, env-prefixed datasets (#29).
 
 ## Local setup
 

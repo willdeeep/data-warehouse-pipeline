@@ -1,6 +1,6 @@
 /*
 ===================================================================================
-FACT: fact_transactions
+FACT: fct_transactions
 ===================================================================================
 
 PURPOSE:
@@ -21,7 +21,7 @@ FOREIGN KEYS:
     - date_key -> dim_date
     - user_crm_id -> dim_users  
     - product_id -> dim_products
-    - session_id -> fact_sessions
+    - session_id -> fct_sessions
 
 ===================================================================================
 */

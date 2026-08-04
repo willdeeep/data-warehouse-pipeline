@@ -1,7 +1,7 @@
 # AGENTS.md
 
 Loom — synthetic e-commerce data warehouse (portfolio rebuild of an iOSphere training repo).
-Terraform provisions GCP, `loom-datagen` seeds BigQuery once, dbt builds staging → intermediate → marts.
+Terraform provisions GCP, `loom-datagen` seeds BigQuery once, dbt builds staging → core → marts.
 Roadmap + locked design decisions: `.opencode/plans/00-roadmap.md`. Release model: `docs/RELEASE.md`.
 
 ## Active vs legacy code

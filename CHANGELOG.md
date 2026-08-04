@@ -12,6 +12,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ### Changed
 - Renamed the eBay auth env var `CLIENT_SECRET` → `CLIENT_TOKEN` in `.env.example`.
+- Renamed the dbt `intermediate/` layer to `core/` to reflect its role as the normalized,
+  conformed star-schema core; standardized model names to strict dbt-Labs convention
+  (facts `fact_`→`fct_`, marts to the `rpt_` prefix), and updated the `generate_schema_name`
+  routing macro accordingly (#42).
 
 ## [0.1.0] — 2026-07-12
 
