@@ -48,7 +48,12 @@ WITH base AS (
         ON fs.session_id = ft.session_id
         AND fa.date_key = ft.date_key
 
-    WHERE d.date BETWEEN DATE('2024-05-01') AND DATE('2024-06-30')
+    {% if var('channel_perf_start_date', none) is not none %}
+    WHERE d.date >= DATE('{{ var("channel_perf_start_date") }}')
+      {% if var('channel_perf_end_date', none) is not none %}
+      AND d.date <= DATE('{{ var("channel_perf_end_date") }}')
+      {% endif %}
+    {% endif %}
     GROUP BY
         d.date, week_number, d.day_of_week, d.month, d.year,
         dap.channel_type, dap.platform_name, dd.device_type, fa.clicks, fa.impressions, fa.cost
