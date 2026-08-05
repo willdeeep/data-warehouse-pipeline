@@ -413,7 +413,12 @@ sources:
 
 
   - name: users
-    description: 'Customer profile and lifecycle data with subscription status'
+    description: 'Customer profile history (SCD2 source): one row per user_crm_id per profile version, ordered by valid_from.'
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - user_crm_id
+            - valid_from
     columns:
     - name: user_crm_id # - unique - temprorarily disabled to allow for de-duplication of CRM IDs during staging
       description: 'Customer relationship management ID for registered users'
@@ -459,6 +464,11 @@ sources:
         - sql_injection_detection:
             config:
               severity: warn
+    - name: valid_from
+      description: 'Effective date this profile version became current (SCD2 version key; half-open [valid_from, next valid_from)).'
+      data_type: DATE
+      tests:
+        - not_null
 
 
 - name: ebay
