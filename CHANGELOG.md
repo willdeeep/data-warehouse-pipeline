@@ -21,6 +21,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
   conformed star-schema core; standardized model names to strict dbt-Labs convention
   (facts `fact_`→`fct_`, marts to the `rpt_` prefix), and updated the `generate_schema_name`
   routing macro accordingly (#42).
+- Documented `rpt_customer_activity` intent (SCD-chronology mart) and added a singular guard
+  test asserting both activity types are present. It runs at `severity: warn` for now because
+  `dim_users` has no SCD2 history yet (the source `users` table is a single snapshot); it flips
+  to `severity: error` once the dim-users-scd2 build-out lands (#43).
+
+### Removed
+- Deleted the redundant `marketing_metrics_mart` — a strict subset of
+  `rpt_daily_channel_performance` that read `staging` directly and was undocumented (#43).
+
+### Fixed
+- `rpt_daily_channel_performance`: replaced the hardcoded `2024-05..06` date filter with an
+  optional var-gated window, and dropped the `device` grain that double-counted ad spend.
+  Mart total `ad_spend` now equals `SUM(fct_advertising.cost)` exactly, at one row per
+  date×channel×platform (#43).
 
 ## [0.1.0] — 2026-07-12
 

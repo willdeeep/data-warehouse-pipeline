@@ -3,7 +3,8 @@ version: 2
 models:
   - name: rpt_daily_channel_performance
     description: >
-      Daily performance mart aggregating advertising, session, and transaction metrics by date, channel, platform, and device. 
+      Daily performance mart aggregating advertising, session, and transaction metrics by date, channel, and platform.
+      Grain is one row per date x channel x platform so ad spend sums correctly (device is intentionally not in the grain).
       Includes acquisition, engagement, and revenue KPIs for multi-channel marketing analysis.
     columns:
       - name: date
@@ -24,16 +25,14 @@ models:
         description: "Advertising platform name (e.g., Facebook, Google Ads, TikTok)."
       - name: clicks
         description: "Number of ad clicks recorded for the platform and date."
-      - name: device
-        description: "Device type used in the session (e.g., Mobile, Desktop, Tablet)."
       - name: impressions
         description: "Number of ad impressions served for the platform and date."
       - name: ad_spend
         description: "Total advertising spend for the platform and date."
       - name: sessions
-        description: "Number of unique sessions for the platform, device, and date."
+        description: "Number of unique sessions for the channel, platform, and date."
       - name: total_users
-        description: "Number of unique users who had a session for the platform, device, and date."
+        description: "Number of unique users who had a session for the channel, platform, and date."
       - name: new_users
         description: "Number of users who registered on the given date."
       - name: bounces
