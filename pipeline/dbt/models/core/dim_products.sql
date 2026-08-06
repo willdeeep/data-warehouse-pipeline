@@ -125,7 +125,7 @@ products_combined AS (
 -- Simple table materialization - creates current snapshot of all products
 final AS (
     SELECT 
-        {{ dbt_utils.generate_surrogate_key(['product_id', 'dbt_valid_from']) }} AS product_surrogate_key,
+        {{ generate_int_surrogate_key(['product_id', 'dbt_valid_from']) }} AS product_surrogate_key,
         product_id,
         -- Keys-only: brand/category text lives in the snowflaked sub-dims (conformed hashes).
         {{ generate_int_surrogate_key(['brand']) }} AS brand_key,
