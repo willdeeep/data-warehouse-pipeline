@@ -51,7 +51,7 @@ BUSINESS VALUE:
 ) }}
 
 SELECT
-  ft.transaction_product_id AS transaction_product_id,
+  ft.item_id AS item_id,
   ft.date_key,
   ft.user_crm_id AS user_crm_id,
   ft.user_cookie_id AS user_cookie_id,
