@@ -105,5 +105,6 @@ SCHEMAS: dict[str, list[bq.SchemaField]] = {
         _f("loom_plus_tier", "STRING"),
         _f("registration_date", "DATE"),
         _f("user_gender", "STRING"),
+        _f("valid_from", "DATE", _R),
     ],
 }

@@ -44,7 +44,9 @@ def build_sessions(cfg, rng: np.random.Generator, fake, users: pd.DataFrame) -> 
     dates = rng.choice(days, n)
     logged_in = rng.random(n) < 0.7
     crm = pd.Series([pd.NA] * n, dtype="object")
-    crm[logged_in] = rng.choice(users["user_crm_id"].to_numpy(), int(logged_in.sum()))
+    # users may now have multiple SCD2 version rows per user_crm_id; sample distinct ids so
+    # multi-version users aren't over-weighted vs. single-version users.
+    crm[logged_in] = rng.choice(users["user_crm_id"].unique(), int(logged_in.sum()))
 
     return pd.DataFrame(
         {
