@@ -155,23 +155,55 @@ models:
         description: "Timestamp when this record was first created by dbt."
 
   - name: dim_geo
-    description: "INTERMEDIATE MODEL: Geographic dimension table for location-based analysis. Provides standardized geography hierarchy combining data from sessions and users with default US country assignment."
+    description: "City (leaf) of the geographic hierarchy; parents up to dim_region via region_key (snowflaked)."
     columns:
       - name: geo_key
-        description: "Primary surrogate key for geography dimension"
+        description: "Surrogate PK (city grain)."
         tests:
           - unique
           - not_null
       - name: city
-        description: "City name (cleaned and standardized)"
-      - name: region
-        description: "State or region"
-      - name: country
-        description: "Country code (defaults to US)"
+        description: "City name (region suffix stripped)."
+      - name: region_key
+        description: "FK to dim_region; NULL when no region parsed from the city string."
+        tests:
+          - relationships:
+              to: ref('dim_region')
+              field: region_key
+              config:
+                where: "region_key is not null"
       - name: dbt_updated_at
         description: "Timestamp when this record was last updated by dbt."
       - name: dbt_created_at
         description: "Timestamp when this record was first created by dbt."
+
+  - name: dim_region
+    description: "Region level of the geographic hierarchy; parents up to dim_country."
+    columns:
+      - name: region_key
+        description: "Surrogate PK (conformed hash of region + country)."
+        tests:
+          - unique
+          - not_null
+      - name: region_name
+        description: "Region name parsed from the city string."
+      - name: country_key
+        description: "FK to dim_country."
+        tests:
+          - relationships:
+              to: ref('dim_country')
+              field: country_key
+
+  - name: dim_country
+    description: "Country level of the geographic hierarchy (top). One row per country."
+    columns:
+      - name: country_key
+        description: "Surrogate PK (conformed hash of country)."
+        tests:
+          - unique
+          - not_null
+      - name: country_name
+        description: "Country name (currently constant 'US' — see thin-data caveat)."
 
   - name: dim_devices
     description: "INTERMEDIATE MODEL: Device dimension table for digital analytics and user experience analysis. Standardizes device, browser, and operating system classifications for technology stack identification."

@@ -37,6 +37,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
   `rpt_daily_channel_performance` that read `staging` directly and was undocumented (#43).
 
 ### Changed
+- Snowflaked the geo hierarchy into `dim_country` ← `dim_region` ← `dim_geo` (city leaf) via an
+  ephemeral `int_geo_locations` helper and conformed surrogate-hash FKs; `dim_geo` now carries
+  `region_key` instead of inline region/country text. `fct_sessions` is unchanged (city join).
+  Relationship tests enforce the hierarchy (`dim_geo.region_key` scoped `where region_key is not
+  null` for the thin Faker geo) (#44).
 - Transaction line-item grain is now **one row per unit sold**, keyed by a globally-unique `item_id`
   (the SKU moved to `product_id`). Two units of the same product in one transaction are now
   distinguishable, so returns reference a specific `item_id`. `fct_transactions` also joins
