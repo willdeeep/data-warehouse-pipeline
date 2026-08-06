@@ -2,21 +2,22 @@
 
 Records the green end-to-end `dbt build` of the Loom warehouse against Faker-seeded
 `dev_loom_sync` data. Baseline established in Plan 03 (issues #11–13); refreshed after
-Plan 09 (layer/naming restructure + marts cleanup).
+Plan 09 (layer/naming restructure + marts cleanup) and Plan 13 (real SCD2 history for `dim_users`).
 
 ## Result
 
 ```
-Done. PASS=181 WARN=3 ERROR=0 SKIP=0 NO-OP=0 TOTAL=184
+Done. PASS=182 WARN=4 ERROR=0 SKIP=0 NO-OP=0 TOTAL=186
 ```
 
 - **28 models** (10 staging views + 18 core/mart tables), **1 seed**, **11 sources**.
-- **0 errors, 0 skips.** All 3 warnings are intentional (below).
+- **0 errors, 0 skips.** All 4 warnings are intentional (below).
 
-> Plan 09 Issue B removed the redundant `marketing_metrics_mart` (one fewer model) and fixed
-> `rpt_daily_channel_performance` (parametrized date window + dropped the device grain that
-> double-counted ad spend). Verified: mart total `ad_spend` now equals `SUM(fct_advertising.cost)`
-> exactly, at one row per date×channel×platform.
+> Plan 13 gave `dim_users` genuine SCD Type 2 history: the generator now emits versioned user
+> profiles (`valid_from` per version), so `dim_users` carries **749 rows across 500 users** (249
+> historical, exactly one `is_current` per user). `rpt_customer_activity` now populates both
+> `profile_change` (249) and `transaction` (54) rows — its guard test passes at `severity: error`,
+> and the point-in-time join resolves every kept transaction (`pit_violations = 0`).
 
 ## Layers
 
@@ -27,17 +28,26 @@ Done. PASS=181 WARN=3 ERROR=0 SKIP=0 NO-OP=0 TOTAL=184
 | core | dims: `dim_date/devices/medium/source/geo/products/users/ad_platform`, `ebay_dim_brand/category`; facts: `fct_sessions/transactions/advertising`, `ebay_fct_items` |
 | marts | `rpt_customer_activity`, `rpt_transactions`, `rpt_daily_channel_performance` |
 
-## Accepted warnings (3)
+## Accepted warnings (4)
 
 All are `severity: warn` by design:
 
 - `ebay_transformed.condition` — 13 rows outside `{New with tags/box, New without tags}` (scraped
   competitor listings legitimately exceed the strict enum; normalized by the eBay ETL, Plan 04).
 - `ebay_transformed.gender` — 1 row outside `{mens, womens, unisex, kids}` (same reason).
-- `assert_rpt_customer_activity_has_both_activity_types` — the mart currently emits only
-  `transaction` rows because `dim_users` has no SCD2 history yet (the source `users` table is a
-  single snapshot). Warns until the dim-users-scd2 build-out adds versioned history, after which
-  the test flips back to `severity: error`.
+- `unique_fct_transactions_transaction_product_id` and `unique_rpt_transactions_transaction_product_id`
+  — `(transaction_id, product_id)` is not unique in the Faker data (a transaction can carry the same
+  product on multiple line items). Downgraded to `warn` in #e9c6992; a true composite grain key is
+  natural-key-hardening work (#36). These surface/vary with each data regeneration.
+
+## Known data-realism gap (not a warning, but worth noting)
+
+`rpt_customer_activity` keeps **54 of 789** fact-transaction rows: the other **735 transactions are
+dated *before* their user's `registration_date`**, so the mart's (correct) point-in-time join
+excludes them — you can't attribute a purchase to a customer profile that didn't exist yet. The root
+cause is upstream: the generator samples session/transaction dates across the whole calendar range
+without bounding them to `>= registration_date`. Constraining session dates to a user's post-signup
+window is a follow-up datagen improvement (does not affect SCD2 correctness).
 
 ## Data reconciliation notes
 

@@ -8,6 +8,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 ## [Unreleased]
 
 ### Added
+- Real SCD Type 2 history for `dim_users`: the synthetic generator now emits versioned user
+  profile history (a `valid_from` per version; ~35% of users change over time, oldest version
+  anchored to `registration_date`), and `dim_users` derives `valid_from`/`valid_to`/`is_current`
+  via a `LEAD()` window. `rpt_customer_activity`'s `profile_change` branch now populates and its
+  guard test runs at `severity: error` again. No mart SQL changed — the transaction branch was
+  already point-in-time-correct (Plan 13).
 - `AGENTS.md` — top-level agent onboarding guide for the repository.
 - `invoke` task runner (`tasks.py`): `invoke build`/`seed`/`run`/`test`/`refresh`/`build-container`
   wrap the common dbt/container commands and auto-load `.env`.
