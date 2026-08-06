@@ -38,3 +38,13 @@ def test_users_versions_are_ordered_and_changing(frames):
 def test_users_valid_from_not_null(frames):
     u = frames["users"]
     assert u["valid_from"].notna().all()
+
+
+def test_oldest_version_starts_at_registration(frames):
+    # The oldest version of every user must be effective from registration, so the SCD2 timeline
+    # covers the whole lifetime and the mart's point-in-time join never drops early transactions.
+    u = frames["users"].copy()
+    u["valid_from"] = pd.to_datetime(u["valid_from"])
+    u["registration_date"] = pd.to_datetime(u["registration_date"])
+    oldest = u.sort_values("valid_from").groupby("user_crm_id", as_index=False).first()
+    assert (oldest["valid_from"] == oldest["registration_date"]).all()

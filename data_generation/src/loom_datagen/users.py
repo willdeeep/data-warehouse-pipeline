@@ -59,13 +59,14 @@ def build_users(cfg, rng: np.random.Generator, fake) -> pd.DataFrame:
         else:
             n_prior = 0
 
-        # valid_from dates: n_prior earlier dates + the current version's own effective date,
-        # all strictly after registration, sorted ascending.
+        # valid_from dates: the OLDEST version is effective from registration (so the SCD2
+        # timeline covers the user's whole lifetime and no activity predates the first version);
+        # each later version starts on a distinct change date after registration, sorted ascending.
         span_days = max((pd.Timestamp(cfg.end_date) - reg_ts).days, n_prior + 2)
-        offsets = sorted(
-            int(o) for o in rng.choice(np.arange(1, span_days), size=n_prior + 1, replace=False)
+        change_offsets = sorted(
+            int(o) for o in rng.choice(np.arange(1, span_days), size=n_prior, replace=False)
         )
-        version_dates = [reg_ts + pd.Timedelta(days=o) for o in offsets]
+        version_dates = [reg_ts] + [reg_ts + pd.Timedelta(days=o) for o in change_offsets]
 
         # Work backwards from current attributes, mutating tracked fields for each prior version.
         # Each prior version must differ from the version immediately newer than it in >=1 tracked
