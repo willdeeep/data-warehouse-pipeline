@@ -26,8 +26,10 @@ base_users AS (
         CURRENT_TIMESTAMP() AS dbt_updated_at,
         CURRENT_TIMESTAMP() AS dbt_valid_from
     FROM {{source('loom_sync','users')}}
+    -- Integer contract: keep only rows whose user_crm_id is integer-castable. The old
+    -- `LENGTH(...) = 7` guard silently dropped valid ids and is removed (#36); a not_null test on
+    -- user_crm_id guards the key instead.
     WHERE SAFE_CAST(user_crm_id AS INT64) IS NOT NULL
-      AND LENGTH(CAST(user_crm_id AS STRING)) = 7
 )
 
 SELECT 
