@@ -92,14 +92,20 @@ models:
         description: "Natural business key for product (multiple records per product for SCD)"
         tests:
           - not_null
-      - name: brand
-        description: "Product brand name (trackable for changes)"
+      - name: brand_key
+        description: "FK to dim_brand (snowflaked)."
+        tests:
+          - relationships:
+              to: ref('dim_brand')
+              field: brand_key
+      - name: sub_category_key
+        description: "FK to dim_sub_category (main category reachable via the sub → main link)."
+        tests:
+          - relationships:
+              to: ref('dim_sub_category')
+              field: sub_category_key
       - name: name
         description: "Product name (trackable for changes)"
-      - name: main_category
-        description: "Primary product category (trackable for changes)"
-      - name: sub_category
-        description: "Product subcategory (trackable for changes)"
       - name: gender_target
         description: "Target gender for product (trackable for changes)"
       - name: list_price
@@ -122,6 +128,45 @@ models:
         description: "dbt processing timestamp (latest across all sources)"
       - name: dbt_created_at
         description: "dbt record creation timestamp"
+
+  - name: dim_brand
+    description: "Product brand dimension (snowflaked out of dim_products)."
+    columns:
+      - name: brand_key
+        description: "Surrogate PK (conformed hash of brand)."
+        tests:
+          - unique
+          - not_null
+      - name: brand_name
+        description: "Brand name."
+
+  - name: dim_main_category
+    description: "Top level of the product category hierarchy."
+    columns:
+      - name: main_category_key
+        description: "Surrogate PK (conformed hash of main category)."
+        tests:
+          - unique
+          - not_null
+      - name: main_category_name
+        description: "Main category name."
+
+  - name: dim_sub_category
+    description: "Sub level of the product category hierarchy; parents up to dim_main_category."
+    columns:
+      - name: sub_category_key
+        description: "Surrogate PK (conformed hash of sub category)."
+        tests:
+          - unique
+          - not_null
+      - name: sub_category_name
+        description: "Sub category name."
+      - name: main_category_key
+        description: "FK to dim_main_category."
+        tests:
+          - relationships:
+              to: ref('dim_main_category')
+              field: main_category_key
 
   - name: dim_source
     description: "INTERMEDIATE MODEL: Source dimension table for marketing attribution analysis. Standardizes traffic source classifications with automated channel categorization."

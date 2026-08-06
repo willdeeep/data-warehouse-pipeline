@@ -217,8 +217,8 @@ final_mart AS (
         d.is_weekend AS activity_is_weekend,
         
         -- Add product context for transactions
-        p.brand AS product_brand,
-        p.main_category AS product_category,
+        b.brand_name AS product_brand,
+        mc.main_category_name AS product_category,
         p.list_price AS product_list_price,
         
         -- Customer journey metrics
@@ -239,6 +239,9 @@ final_mart AS (
     FROM customer_activity_consolidated ca
     LEFT JOIN {{ ref('dim_date') }} d ON ca.activity_date = d.date
     LEFT JOIN {{ ref('dim_products') }} p ON ca.product_id = p.product_id AND p.is_current = TRUE
+    LEFT JOIN {{ ref('dim_brand') }} b ON p.brand_key = b.brand_key
+    LEFT JOIN {{ ref('dim_sub_category') }} sc ON p.sub_category_key = sc.sub_category_key
+    LEFT JOIN {{ ref('dim_main_category') }} mc ON sc.main_category_key = mc.main_category_key
 )
 
 SELECT * FROM final_mart

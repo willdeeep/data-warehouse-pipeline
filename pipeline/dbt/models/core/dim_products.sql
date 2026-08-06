@@ -34,7 +34,7 @@ SCD LOGIC:
     indexes=[
         {'columns': ['product_surrogate_key'], 'type': 'btree'},
         {'columns': ['product_id'], 'type': 'btree'},
-        {'columns': ['brand'], 'type': 'btree'},
+        {'columns': ['brand_key'], 'type': 'btree'},
         {'columns': ['is_current'], 'type': 'btree'},
         {'columns': ['valid_from', 'valid_to'], 'type': 'btree'}
     ]
@@ -127,10 +127,10 @@ final AS (
     SELECT 
         {{ dbt_utils.generate_surrogate_key(['product_id', 'dbt_valid_from']) }} AS product_surrogate_key,
         product_id,
-        brand,
+        -- Keys-only: brand/category text lives in the snowflaked sub-dims (conformed hashes).
+        {{ dbt_utils.generate_surrogate_key(['brand']) }} AS brand_key,
+        {{ dbt_utils.generate_surrogate_key(['sub_category']) }} AS sub_category_key,
         name,
-        main_category,
-        sub_category,
         gender_target,
         list_price,
         unit_cost,
