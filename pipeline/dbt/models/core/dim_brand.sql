@@ -2,7 +2,7 @@
 
 -- Brand dimension (snowflaked out of dim_products).
 SELECT
-    {{ dbt_utils.generate_surrogate_key(['item_brand']) }} AS brand_key,
+    {{ generate_int_surrogate_key(['item_brand']) }} AS brand_key,
     item_brand AS brand_name,
     CURRENT_TIMESTAMP() AS dbt_created_at
 FROM (

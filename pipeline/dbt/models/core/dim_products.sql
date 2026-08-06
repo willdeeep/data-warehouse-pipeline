@@ -128,8 +128,8 @@ final AS (
         {{ dbt_utils.generate_surrogate_key(['product_id', 'dbt_valid_from']) }} AS product_surrogate_key,
         product_id,
         -- Keys-only: brand/category text lives in the snowflaked sub-dims (conformed hashes).
-        {{ dbt_utils.generate_surrogate_key(['brand']) }} AS brand_key,
-        {{ dbt_utils.generate_surrogate_key(['sub_category']) }} AS sub_category_key,
+        {{ generate_int_surrogate_key(['brand']) }} AS brand_key,
+        {{ generate_int_surrogate_key(['sub_category']) }} AS sub_category_key,
         name,
         gender_target,
         list_price,

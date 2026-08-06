@@ -2,9 +2,9 @@
 
 -- Region level; parents up to dim_country. country_key is the same conformed hash dim_country stores.
 SELECT
-    {{ dbt_utils.generate_surrogate_key(['region', 'country']) }} AS region_key,
+    {{ generate_int_surrogate_key(['region', 'country']) }} AS region_key,
     region AS region_name,
-    {{ dbt_utils.generate_surrogate_key(['country']) }} AS country_key,
+    {{ generate_int_surrogate_key(['country']) }} AS country_key,
     CURRENT_TIMESTAMP() AS dbt_created_at
 FROM (
     SELECT DISTINCT region, country

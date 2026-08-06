@@ -2,7 +2,7 @@
 
 -- Top level of the product category hierarchy.
 SELECT
-    {{ dbt_utils.generate_surrogate_key(['item_main_category']) }} AS main_category_key,
+    {{ generate_int_surrogate_key(['item_main_category']) }} AS main_category_key,
     item_main_category AS main_category_name,
     CURRENT_TIMESTAMP() AS dbt_created_at
 FROM (
