@@ -291,12 +291,10 @@ models:
   - name: fct_transactions
     description: "INTERMEDIATE MODEL: Transaction fact table for revenue analysis and business performance metrics. Contains transaction line item data with dimensional foreign keys including revenue, cost, profit calculations, and return tracking."
     columns:
-      - name: transaction_product_id
-        description: "Primary key for transaction product line item"
+      - name: item_id
+        description: "Primary key: globally-unique identifier for each unit sold"
         tests:
-          - unique:
-              config:
-                severity: warn
+          - unique
           - not_null
       - name: date_key
         description: "Foreign key to date dimension"
