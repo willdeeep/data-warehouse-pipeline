@@ -36,6 +36,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 - Deleted the redundant `marketing_metrics_mart` — a strict subset of
   `rpt_daily_channel_performance` that read `staging` directly and was undocumented (#43).
 
+### Fixed (datagen)
+- Session and transaction dates are now bounded to on/after each user's `registration_date`:
+  registration is sampled within `[start_date − 365d, end_date]` and logged-in session dates are
+  resampled into `[max(registration_date, window_start), window_end]`. Previously most users
+  registered *after* the data window, so ~93% of transactions physically predated signup and were
+  excluded from `rpt_customer_activity` by the SCD2 point-in-time join; the lifecycle mart now
+  retains all transactions (#55).
+
 ### Fixed
 - `rpt_daily_channel_performance`: replaced the hardcoded `2024-05..06` date filter with an
   optional var-gated window, and dropped the `device` grain that double-counted ad spend.

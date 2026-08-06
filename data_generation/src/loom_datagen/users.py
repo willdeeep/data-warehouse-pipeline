@@ -22,7 +22,13 @@ def build_users(cfg, rng: np.random.Generator, fake) -> pd.DataFrame:
     # stg_users filters `LENGTH(...) = 7`, so 6-digit ids get silently dropped (empty dim_users).
     crm = [str(1_000_000 + i) for i in range(n)]
 
-    reg = pd.to_datetime(cfg.start_date) + pd.to_timedelta(rng.integers(0, 900, n), unit="D")
+    # Customers accrue over time up to — but not beyond — the data window's end, so every user can
+    # have in-window activity that postdates their signup. Sample registration uniformly from
+    # [start_date - 365d, end_date]. (Previously start+[0,900) pushed most registrations past
+    # end_date, making the bulk of sessions/transactions physically predate signup — see #55.)
+    reg_lo = pd.to_datetime(cfg.start_date) - pd.Timedelta(days=365)
+    reg_span_days = (pd.to_datetime(cfg.end_date) - reg_lo).days
+    reg = reg_lo + pd.to_timedelta(rng.integers(0, reg_span_days + 1, n), unit="D")
 
     subscribed = rng.random(n) < 0.25
     tier = pd.Series([pd.NA] * n, dtype="object")
