@@ -42,6 +42,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
   `region_key` instead of inline region/country text. `fct_sessions` is unchanged (city join).
   Relationship tests enforce the hierarchy (`dim_geo.region_key` scoped `where region_key is not
   null` for the thin Faker geo) (#44).
+- Snowflaked the product hierarchy into `dim_brand`, `dim_main_category` ← `dim_sub_category`;
+  `dim_products` is now keys-only (`brand_key`, `sub_category_key`) with `rpt_transactions` and
+  `rpt_customer_activity` re-joining the sub-dims for display names (verified 0 NULLs).
+  Relationship tests enforce the hierarchy (#45).
 - Transaction line-item grain is now **one row per unit sold**, keyed by a globally-unique `item_id`
   (the SKU moved to `product_id`). Two units of the same product in one transaction are now
   distinguishable, so returns reference a specific `item_id`. `fct_transactions` also joins

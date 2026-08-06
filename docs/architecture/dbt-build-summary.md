@@ -7,11 +7,17 @@ Plan 09 (layer/naming restructure + marts cleanup) and Plan 13 (real SCD2 histor
 ## Result
 
 ```
-Done. PASS=185 WARN=2 ERROR=0 SKIP=0 NO-OP=0 TOTAL=187
+Done. PASS=205 WARN=2 ERROR=0 SKIP=0 NO-OP=0 TOTAL=207
 ```
 
-- **28 models** (10 staging views + 18 core/mart tables), **1 seed**, **11 sources**.
+- **33 models** (10 staging views + 23 core/mart tables), **1 seed**, **11 sources**.
 - **0 errors, 0 skips.** Both remaining warnings are intentional (below).
+
+> Plan 10 snowflaked the core hierarchies (~3NF): geo into `dim_country` ← `dim_region` ← `dim_geo`
+> (city leaf, via ephemeral `int_geo_locations`), and product into `dim_brand` +
+> `dim_main_category` ← `dim_sub_category`, with `dim_products` now **keys-only** (`brand_key`,
+> `sub_category_key`). FKs are conformed `generate_surrogate_key` hashes with `relationships` tests;
+> the `rpt_` marts re-join the sub-dims for display names (verified 0 NULLs).
 
 > Plan 13 gave `dim_users` genuine SCD Type 2 history: the generator now emits versioned user
 > profiles (`valid_from` per version), so `dim_users` carries **749 rows across 500 users** (249
@@ -25,7 +31,7 @@ Done. PASS=185 WARN=2 ERROR=0 SKIP=0 NO-OP=0 TOTAL=187
 |-------|----------|
 | sources | `loom_sync` (10 tables) + `ebay.ebay_transformed` (seeded stand-in) |
 | staging | `stg_*` (views): adplatform, funnel events, sessions, transactions(+items), products (attributes/costs/list prices), returns, users |
-| core | dims: `dim_date/devices/medium/source/geo/products/users/ad_platform`, `ebay_dim_brand/category`; facts: `fct_sessions/transactions/advertising`, `ebay_fct_items` |
+| core | dims: `dim_date/devices/medium/source/geo/products/users/ad_platform`, geo snowflake `dim_country/region`, product snowflake `dim_brand/main_category/sub_category`, `ebay_dim_brand/category`; facts: `fct_sessions/transactions/advertising`, `ebay_fct_items` (+ ephemeral `int_geo_locations`) |
 | marts | `rpt_customer_activity`, `rpt_transactions`, `rpt_daily_channel_performance` |
 
 ## Accepted warnings (2)
