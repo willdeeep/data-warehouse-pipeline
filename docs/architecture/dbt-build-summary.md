@@ -40,14 +40,14 @@ All are `severity: warn` by design:
   product on multiple line items). Downgraded to `warn` in #e9c6992; a true composite grain key is
   natural-key-hardening work (#36). These surface/vary with each data regeneration.
 
-## Known data-realism gap (not a warning, but worth noting)
+## Activity is bounded to on/after signup (#55, resolved)
 
-`rpt_customer_activity` keeps **54 of 789** fact-transaction rows: the other **735 transactions are
-dated *before* their user's `registration_date`**, so the mart's (correct) point-in-time join
-excludes them — you can't attribute a purchase to a customer profile that didn't exist yet. The root
-cause is upstream: the generator samples session/transaction dates across the whole calendar range
-without bounding them to `>= registration_date`. Constraining session dates to a user's post-signup
-window is a follow-up datagen improvement (does not affect SCD2 correctness).
+Session and transaction dates are now guaranteed to fall on or after each user's `registration_date`:
+the generator samples registration within `[start_date − 365d, end_date]` and resamples logged-in
+session dates into `[max(registration_date, window_start), window_end]` (transactions inherit session
+dates). As a result `rpt_customer_activity` retains **all 880** fact-transaction rows (previously it
+kept only 54 of 789 because the rest physically predated signup and the SCD2 point-in-time join
+correctly excluded them). Verified: **0** transactions dated before registration.
 
 ## Data reconciliation notes
 
