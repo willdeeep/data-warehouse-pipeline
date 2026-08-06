@@ -51,11 +51,12 @@ SCHEMAS: dict[str, list[bq.SchemaField]] = {
         _f("item_list_price", "FLOAT", _R),
     ],
     "product_returns": [
+        # One row per returned unit, referencing the specific item_id sold.
         _f("return_date", "DATE", _R),
         _f("transaction_id", "STRING", _R),
         _f("item_id", "STRING", _R),
-        _f("item_quantity", "INTEGER"),
-        _f("return_quantity", "FLOAT"),
+        _f("product_id", "STRING", _R),
+        _f("return_quantity", "FLOAT"),  # always 1 (one unit returned)
         _f("return_status", "STRING"),
     ],
     "productattributes": [
@@ -88,11 +89,13 @@ SCHEMAS: dict[str, list[bq.SchemaField]] = {
         _f("user_crm_id", "STRING"),
     ],
     "transactionsanditems": [
-        _f("transaction_id", "STRING", _R),
+        # One row per unit sold: item_id is a globally-unique per-item key; product_id is the SKU.
         _f("item_id", "STRING", _R),
+        _f("transaction_id", "STRING", _R),
+        _f("product_id", "STRING", _R),
         _f("date", "DATE", _R),
         _f("item_price", "FLOAT"),
-        _f("item_quantity", "INTEGER"),
+        _f("item_quantity", "INTEGER"),  # always 1 (each row is one unit)
     ],
     "users": [
         _f("user_crm_id", "STRING", _R),
