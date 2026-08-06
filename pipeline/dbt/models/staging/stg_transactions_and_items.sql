@@ -43,10 +43,11 @@ WITH cleaned_transaction_items AS (
     SELECT
         -- Original source columns with SAFE_CAST for data types
         date,
+        SAFE_CAST(item_id as INTEGER) as item_id,              -- unique per-unit grain key
         SAFE_CAST(transaction_id AS INTEGER) as transaction_id,
-        SAFE_CAST(item_id as INTEGER) as product_id,  -- Normalize to product_id
+        SAFE_CAST(product_id as INTEGER) as product_id,        -- product SKU
         ROUND(SAFE_CAST(item_price as FLOAT64), 2) as product_price,  -- Normalize to product_price
-        SAFE_CAST(item_quantity as INTEGER) as product_quantity,  -- Normalize to product_quantity
+        SAFE_CAST(item_quantity as INTEGER) as product_quantity,  -- always 1 (one unit per row)
         
         -- Add metadata
         CURRENT_TIMESTAMP as dbt_updated_at,

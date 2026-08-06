@@ -42,8 +42,8 @@ WITH cleaned_product_returns AS (
         -- Original source columns with SAFE_CAST for data types
         return_date,
         SAFE_CAST(transaction_id AS INTEGER) as transaction_id,
-        SAFE_CAST(item_id as INTEGER) as product_id,  -- Normalize to product_id
-        SAFE_CAST(item_quantity as INTEGER) as product_quantity,  -- Normalize to product_quantity
+        SAFE_CAST(item_id as INTEGER) as item_id,        -- per-unit key of the returned item
+        SAFE_CAST(product_id as INTEGER) as product_id,  -- product SKU (for reporting joins)
         SAFE_CAST(return_quantity as FLOAT64) as return_quantity,
         return_status,
         
