@@ -217,18 +217,17 @@ sources:
       tests:
         - not_null
     - name: item_id
-      description: 'Unique identifier for the returned product'
+      description: 'Per-unit identifier of the specific returned item (FK to transactionsanditems.item_id)'
       data_type: STRING
       tests:
         - not_null
-    - name: item_quantity
-      description: 'Original quantity of items purchased'
-      data_type: INTEGER
+    - name: product_id
+      description: 'Product SKU of the returned item (FK to productattributes.item_id)'
+      data_type: STRING
       tests:
-        - dbt_utils.accepted_range:
-            min_value: 1
+        - not_null
     - name: return_quantity
-      description: 'Number of items returned'
+      description: 'Units returned in this row (always 1 — one row per returned unit)'
       data_type: FLOAT
       tests:
         - dbt_utils.accepted_range:
@@ -371,22 +370,21 @@ sources:
       data_type: STRING
 
   - name: transactionsanditems
-    description: 'Transaction line items showing individual products purchased in each transaction'
-    tests:
-      - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - transaction_id
-            - item_id
-          config:
-            severity: warn
+    description: 'Transaction line items: one row per unit sold (item_id), with the product SKU (product_id)'
     columns:
     - name: item_id
-      description: 'Unique identifier for the product purchased'
+      description: 'Globally-unique per-unit line-item key (transaction grain)'
       data_type: STRING
       tests:
         - not_null
+        - unique
     - name: transaction_id
       description: 'Unique identifier for the transaction'
+      data_type: STRING
+      tests:
+        - not_null
+    - name: product_id
+      description: 'Product SKU purchased (FK to productattributes.item_id)'
       data_type: STRING
       tests:
         - not_null

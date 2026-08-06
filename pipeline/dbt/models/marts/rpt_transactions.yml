@@ -4,8 +4,8 @@ models:
   - name: rpt_transactions
     description: "Comprehensive transaction mart with profit analysis and refund tracking. Built on top of the core layer (fct_transactions, dim_date, dim_users, dim_products, fct_sessions) to provide business-ready transaction analytics."
     columns:
-      - name: transaction_product_id
-        description: "Unique identifier for each transaction product line item"
+      - name: item_id
+        description: "Unique identifier for each unit sold (transaction line-item grain key)"
         tests:
           - not_null:
               config:
@@ -13,7 +13,6 @@ models:
           - unique:
               config:
                 tags: ['critical']
-                severity: warn
       - name: date_key
         description: "Date dimension foreign key"
         tests:

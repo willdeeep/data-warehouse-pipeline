@@ -8,9 +8,10 @@ from google.cloud import bigquery
 _FOREIGN_KEYS = [
     ("transactions", "session_id", "sessions", "session_id"),
     ("transactionsanditems", "transaction_id", "transactions", "transaction_id"),
-    ("transactionsanditems", "item_id", "productattributes", "item_id"),
+    ("transactionsanditems", "product_id", "productattributes", "item_id"),
     ("funnelevents", "session_id", "sessions", "session_id"),
     ("product_returns", "transaction_id", "transactions", "transaction_id"),
+    ("product_returns", "item_id", "transactionsanditems", "item_id"),
 ]
 
 # table -> {column: allowed values}

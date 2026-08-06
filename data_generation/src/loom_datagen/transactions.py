@@ -19,6 +19,7 @@ def build_transactions(cfg, rng: np.random.Generator, sessions: pd.DataFrame, pr
 
     headers: list[dict] = []
     lines: list[dict] = []
+    item_seq = 0  # global counter -> unique, numeric-castable per-item item_id
 
     for i, (_, sess) in enumerate(conv.iterrows()):
         # Numeric transaction ids: the warehouse casts transaction_id -> INTEGER.
@@ -32,16 +33,21 @@ def build_transactions(cfg, rng: np.random.Generator, sessions: pd.DataFrame, pr
         shipping = float(rng.choice(_SHIPPING_OPTIONS))
         coupon = _COUPONS[int(rng.choice(len(_COUPONS), p=_COUPON_P))]
 
-        for it, q, p in zip(chosen, qtys, sel_prices, strict=True):
-            lines.append(
-                {
-                    "transaction_id": txn_id,
-                    "item_id": it,
-                    "date": sess["date"],
-                    "item_price": round(float(p), 2),
-                    "item_quantity": int(q),
-                }
-            )
+        # Explode each (product, quantity) into one row per unit sold, each with its own item_id so
+        # two units of the same product are distinguishable (e.g. a partial return).
+        for prod, q, p in zip(chosen, qtys, sel_prices, strict=True):
+            for _ in range(int(q)):
+                lines.append(
+                    {
+                        "item_id": str(900_000_000 + item_seq),
+                        "transaction_id": txn_id,
+                        "product_id": prod,
+                        "date": sess["date"],
+                        "item_price": round(float(p), 2),
+                        "item_quantity": 1,
+                    }
+                )
+                item_seq += 1
 
         headers.append(
             {
