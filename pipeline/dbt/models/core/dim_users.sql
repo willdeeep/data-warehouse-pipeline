@@ -66,11 +66,14 @@ WITH users_source AS (
         -- Calculated metrics (will change over time)
         transaction_count AS lifetime_orders,
         total_revenue AS lifetime_value,
-        
+
         -- Metadata for SCD tracking
         dbt_updated_at,
-        dbt_valid_from
-        
+        dbt_valid_from,
+
+        -- SCD2 version effective date (from source history)
+        valid_from AS source_valid_from
+
     FROM {{ ref('stg_users') }}
     WHERE user_crm_id IS NOT NULL
 ),
@@ -92,55 +95,36 @@ user_changes AS (
         lifetime_value,
         dbt_updated_at,
         dbt_valid_from,
-        
+
         -- Create a signature for change detection
         {{ dbt_utils.generate_surrogate_key([
             'city',
-            'gender', 
+            'gender',
             'opt_in_status',
             'loom_plus_status',
             'loom_plus_tier'
         ]) }} AS change_signature,
-        
-        -- Determine valid_from based on available dates
-        COALESCE(
-            TIMESTAMP(registration_date),
-            TIMESTAMP(first_purchase_date),
-            CURRENT_TIMESTAMP()
-        ) AS calculated_valid_from
-        
+
+        -- Real SCD2 effective date (from source version history)
+        TIMESTAMP(source_valid_from) AS calculated_valid_from
+
     FROM users_source
 ),
 
--- For this simplified approach, we'll create one record per user with current data
--- In a production environment, you would typically implement this as a snapshot
--- or use a more sophisticated change detection mechanism
-
-tier_function AS (
-SELECT
-  s.user_crm_id,
-  CASE
-    WHEN count(DISTINCT transaction_id) IS NULL THEN 'unqualified'
-    WHEN count(DISTINCT transaction_id) = 1 THEN 'bronze'
-    WHEN count(DISTINCT transaction_id) = 2 THEN 'silver'
-    WHEN count(DISTINCT transaction_id) = 3 THEN 'gold'
-    WHEN count(DISTINCT transaction_id) < 4 THEN 'platinum'
-    ELSE 'unqualified' END AS loom_plus_tier
-FROM 
-  {{ ref('stg_sessions') }} s
-LEFT JOIN 
-  {{ ref('stg_transactions') }} t
-USING(session_id) 
-WHERE 
-  s.user_crm_id IS NOT NULL
-GROUP BY 
-  s.user_crm_id
+-- Determine each version's expiry by looking at the next version's valid_from
+versioned AS (
+    SELECT
+        uc.*,
+        LEAD(uc.calculated_valid_from) OVER (
+            PARTITION BY uc.user_crm_id ORDER BY uc.calculated_valid_from
+        ) AS next_valid_from
+    FROM user_changes AS uc
 ),
 
 final AS (
-    SELECT 
-        {{ dbt_utils.generate_surrogate_key(['uc.user_crm_id', 'uc.calculated_valid_from']) }} AS user_surrogate_key,
-        uc.user_crm_id,
+    SELECT
+        {{ dbt_utils.generate_surrogate_key(['user_crm_id', 'calculated_valid_from']) }} AS user_surrogate_key,
+        user_crm_id,
         city,
         gender,
         opt_in_status,
@@ -152,17 +136,17 @@ final AS (
         last_purchase_date,
         lifetime_orders,
         lifetime_value,
-        
-        -- SCD Type 2 fields
+
+        -- SCD Type 2 fields (half-open [valid_from, valid_to))
         calculated_valid_from AS valid_from,
-        CAST(NULL AS TIMESTAMP) AS valid_to,
-        TRUE AS is_current,
-        
+        next_valid_from AS valid_to,
+        (next_valid_from IS NULL) AS is_current,
+
         -- Metadata
         dbt_updated_at,
         CURRENT_TIMESTAMP() AS dbt_created_at
-        
-    FROM user_changes AS uc
+
+    FROM versioned
 )
 
 SELECT * FROM final
