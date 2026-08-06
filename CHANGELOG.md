@@ -36,6 +36,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 - Deleted the redundant `marketing_metrics_mart` — a strict subset of
   `rpt_daily_channel_performance` that read `staging` directly and was undocumented (#43).
 
+### Changed
+- Transaction line-item grain is now **one row per unit sold**, keyed by a globally-unique `item_id`
+  (the SKU moved to `product_id`). Two units of the same product in one transaction are now
+  distinguishable, so returns reference a specific `item_id`. `fct_transactions` also joins
+  `dim_users` **point-in-time** — this removes the SCD2 user-version fan-out that had made
+  `(transaction_id, product_id)` non-unique. The `item_id` uniqueness test on
+  `fct_transactions`/`rpt_transactions` now runs at `severity: error` (build back to WARN=2) (#56).
+
 ### Fixed (datagen)
 - Session and transaction dates are now bounded to on/after each user's `registration_date`:
   registration is sampled within `[start_date − 365d, end_date]` and logged-in session dates are

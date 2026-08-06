@@ -7,11 +7,11 @@ Plan 09 (layer/naming restructure + marts cleanup) and Plan 13 (real SCD2 histor
 ## Result
 
 ```
-Done. PASS=182 WARN=4 ERROR=0 SKIP=0 NO-OP=0 TOTAL=186
+Done. PASS=185 WARN=2 ERROR=0 SKIP=0 NO-OP=0 TOTAL=187
 ```
 
 - **28 models** (10 staging views + 18 core/mart tables), **1 seed**, **11 sources**.
-- **0 errors, 0 skips.** All 4 warnings are intentional (below).
+- **0 errors, 0 skips.** Both remaining warnings are intentional (below).
 
 > Plan 13 gave `dim_users` genuine SCD Type 2 history: the generator now emits versioned user
 > profiles (`valid_from` per version), so `dim_users` carries **749 rows across 500 users** (249
@@ -28,17 +28,19 @@ Done. PASS=182 WARN=4 ERROR=0 SKIP=0 NO-OP=0 TOTAL=186
 | core | dims: `dim_date/devices/medium/source/geo/products/users/ad_platform`, `ebay_dim_brand/category`; facts: `fct_sessions/transactions/advertising`, `ebay_fct_items` |
 | marts | `rpt_customer_activity`, `rpt_transactions`, `rpt_daily_channel_performance` |
 
-## Accepted warnings (4)
+## Accepted warnings (2)
 
-All are `severity: warn` by design:
+Both are `severity: warn` by design:
 
 - `ebay_transformed.condition` — 13 rows outside `{New with tags/box, New without tags}` (scraped
   competitor listings legitimately exceed the strict enum; normalized by the eBay ETL, Plan 04).
 - `ebay_transformed.gender` — 1 row outside `{mens, womens, unisex, kids}` (same reason).
-- `unique_fct_transactions_transaction_product_id` and `unique_rpt_transactions_transaction_product_id`
-  — `(transaction_id, product_id)` is not unique in the Faker data (a transaction can carry the same
-  product on multiple line items). Downgraded to `warn` in #e9c6992; a true composite grain key is
-  natural-key-hardening work (#36). These surface/vary with each data regeneration.
+
+> The two previous `(transaction_id, product_id)` uniqueness warnings are **resolved** (#56): the
+> transaction line-item grain is now one row per **unit sold** with a globally-unique `item_id`, and
+> `fct_transactions` joins `dim_users` **point-in-time** (the SCD2 user-version fan-out that produced
+> the duplicates is gone). `item_id` uniqueness on `fct_transactions`/`rpt_transactions` runs at
+> `severity: error`. Verified: `COUNT(*) == COUNT(DISTINCT item_id) == 2032`.
 
 ## Activity is bounded to on/after signup (#55, resolved)
 
