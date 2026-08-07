@@ -21,12 +21,12 @@ services:
       - DBT_BIGQUERY_KEYFILE_JSON=${DBT_BIGQUERY_KEYFILE_JSON:-}
       - GCP_PROJECT_ID=${GCP_PROJECT_ID}
       - GCP_REGION=${GCP_REGION}
-      - DBT_ROOT_PATH=${DBT_ROOT_PATH}
+      - DBT_ROOT_PATH=/opt/airflow/dbt
       - DBT_TARGET=${DBT_TARGET}
       - DBT_THREADS=${DBT_THREADS}
       - DBT_DEV_DATASET=${DBT_DEV_DATASET}
       - DBT_PROD_DATASET=${DBT_PROD_DATASET}
-      - DBT_PROFILES_DIR=${DBT_PROFILES_DIR}
+      - DBT_PROFILES_DIR=/opt/airflow/dbt
     depends_on:
       - postgres
     volumes:
@@ -52,12 +52,12 @@ services:
       - DBT_BIGQUERY_KEYFILE_JSON=${DBT_BIGQUERY_KEYFILE_JSON:-}
       - GCP_PROJECT_ID=${GCP_PROJECT_ID}
       - GCP_REGION=${GCP_REGION}
-      - DBT_ROOT_PATH=${DBT_ROOT_PATH}
+      - DBT_ROOT_PATH=/opt/airflow/dbt
       - DBT_TARGET=${DBT_TARGET}
       - DBT_THREADS=${DBT_THREADS}
       - DBT_DEV_DATASET=${DBT_DEV_DATASET}
       - DBT_PROD_DATASET=${DBT_PROD_DATASET}
-      - DBT_PROFILES_DIR=${DBT_PROFILES_DIR}
+      - DBT_PROFILES_DIR=/opt/airflow/dbt
     depends_on:
       - postgres
     volumes:
@@ -86,12 +86,12 @@ services:
       - DBT_BIGQUERY_KEYFILE_JSON=${DBT_BIGQUERY_KEYFILE_JSON:-}
       - GCP_PROJECT_ID=${GCP_PROJECT_ID}
       - GCP_REGION=${GCP_REGION}
-      - DBT_ROOT_PATH=${DBT_ROOT_PATH}
+      - DBT_ROOT_PATH=/opt/airflow/dbt
       - DBT_TARGET=${DBT_TARGET}
       - DBT_THREADS=${DBT_THREADS}
       - DBT_DEV_DATASET=${DBT_DEV_DATASET}
       - DBT_PROD_DATASET=${DBT_PROD_DATASET}
-      - DBT_PROFILES_DIR=${DBT_PROFILES_DIR}
+      - DBT_PROFILES_DIR=/opt/airflow/dbt
     volumes:
       # Runtime layout finalized in Plan 03 (dbt paths + OAuth) and Plan 05 (orchestration).
       - ./dags:/opt/airflow/dags

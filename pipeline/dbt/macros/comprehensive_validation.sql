@@ -41,7 +41,7 @@
   {% if target.name == 'prod' %}
     {{ log("✅ PRODUCTION DEPLOYMENT CHECKS:", info=True) }}
     {{ log("   • Custom schema routing: CONFIGURED", info=True) }}
-    {{ log("   • staging/intermediate → dev_warehouse", info=True) }}
+    {{ log("   • staging/core → dev_warehouse", info=True) }}
     {{ log("   • marts → warehouse", info=True) }}
     {{ log("   • Data quality validation: PASSED", info=True) }}
     {{ log("   • Pipeline integrity: VERIFIED", info=True) }}

@@ -4,11 +4,11 @@
   {% if models_list is none %}
     {% set models_to_check = [
       'stg_transactions',
-      'fact_transactions', 
+      'fct_transactions', 
       'dim_users',
       'dim_products',
       'dim_date',
-      'transactions_mart'
+      'rpt_transactions'
     ] %}
   {% else %}
     {% set models_to_check = models_list %}

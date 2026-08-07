@@ -1,6 +1,6 @@
 /*
 ===================================================================================
-MART: transactions_mart
+MART: rpt_transactions
 ===================================================================================
 
 PURPOSE:
@@ -11,11 +11,11 @@ GRAIN:
     One row per transaction line item (transaction_id + product_id combination)
 
 SOURCES:
-    - fact_transactions (intermediate layer)
-    - dim_date (intermediate layer)
-    - dim_users (intermediate layer) 
-    - dim_products (intermediate layer)
-    - fact_sessions (intermediate layer)
+    - fct_transactions (core layer)
+    - dim_date (core layer)
+    - dim_users (core layer) 
+    - dim_products (core layer)
+    - fct_sessions (core layer)
 
 Key Dimensions:
     - Date of transaction and year/month/day values linked in from dim_date
@@ -23,8 +23,8 @@ Key Dimensions:
     - User CRM ID from dim_users (null if guest checkout)
     - User Cookie ID for anonymous user tracking and session analysis
     - Loom+ status from dim_users (null if not a registered user and/or not loom plus)
-    - Session ID from fact_sessions for attribution analysis
-    - Marketing campaign and traffic source from fact_sessions
+    - Session ID from fct_sessions for attribution analysis
+    - Marketing campaign and traffic source from fct_sessions
 
 KEY METRICS:
     - Revenue and cost calculations
@@ -51,7 +51,7 @@ BUSINESS VALUE:
 ) }}
 
 SELECT
-  ft.transaction_product_id AS transaction_product_id,
+  ft.item_id AS item_id,
   ft.date_key,
   ft.user_crm_id AS user_crm_id,
   ft.user_cookie_id AS user_cookie_id,
@@ -69,9 +69,9 @@ SELECT
   
   -- Product dimension attributes (from current SCD version)
   p.name AS product_name,
-  p.brand AS product_brand,
-  p.main_category AS product_main_category,
-  p.sub_category AS product_sub_category,
+  b.brand_name AS product_brand,
+  mc.main_category_name AS product_main_category,
+  sc.sub_category_name AS product_sub_category,
   p.gender_target AS product_gender_target,
   p.list_price AS product_list_price,
   
@@ -102,9 +102,12 @@ SELECT
       WHEN ft.return_status = 'Refund' THEN ft.product_price * COALESCE(ft.return_quantity, 0)
       ELSE 0
     END AS net_revenue
-FROM {{ ref('fact_transactions') }} ft
+FROM {{ ref('fct_transactions') }} ft
 LEFT JOIN {{ ref('dim_date') }} d ON ft.date_key = d.date_key
 -- Join to current version of user dimension using SCD Type 2 logic
 LEFT JOIN {{ ref('dim_users') }} u ON ft.user_crm_id = u.user_crm_id AND u.is_current = TRUE
 -- Join to current version of product dimension using SCD Type 2 logic  
 LEFT JOIN {{ ref('dim_products') }} p ON ft.product_id = p.product_id AND p.is_current = TRUE
+LEFT JOIN {{ ref('dim_brand') }} b ON p.brand_key = b.brand_key
+LEFT JOIN {{ ref('dim_sub_category') }} sc ON p.sub_category_key = sc.sub_category_key
+LEFT JOIN {{ ref('dim_main_category') }} mc ON sc.main_category_key = mc.main_category_key

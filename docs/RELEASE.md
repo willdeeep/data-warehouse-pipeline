@@ -27,7 +27,8 @@ cost trade-off, not an oversight. To enable later: rename the file to `staging.y
 - **`ci.yml`** — the test matrix (ruff lint/format, `data_generation` unit tests, `terraform
   validate/fmt`). Runs on PRs to `dev`/`staging`/`main` and pushes to `main`. It is the
   **required status check** on `main`. Additional jobs (etl tests, dbt parse, DAG integrity) are
-  present but gated `if: false` until Plans 03–04 land, then become required too.
+  present but gated `if: false`. Plan 03 (dbt build) has since landed, so the dbt-parse job is a
+  candidate to un-gate and promote to required; the etl/DAG jobs stay gated until Plan 04.
 - **`deploy-main.yml`** — on push to `main`: authenticate to GCP via Workload Identity
   Federation and `terraform apply` the prod environment.
 - **`staging.yml.disabled`** — the disabled staging equivalent (see above).
@@ -76,9 +77,10 @@ names with an environment prefix** — `dev_`, `stg_`, and **no prefix for prod*
 version-labelled releases; here prod is distinguished by the absence of a prefix.)
 
 This migration — parametrizing the Terraform modules, retargeting the datagen, and aligning
-dbt — is **executed at the start of Plan 03** (issue **#29**), bundled with a clean data
-reload. Until then, `dev` uses the current unprefixed `loom_sync`; the automated prod deploy
-must not run against this single project until #29 lands.
+dbt — **landed at the start of Plan 03** (issue **#29**), bundled with a clean data reload.
+`dev` now builds against the prefixed `dev_loom_sync` source (dbt reads
+`DBT_SOURCE_DATASET`, default `loom_sync`); the automated prod deploy still must not run
+against this single project until the env datasets are fully isolated.
 
 ## Manual deploy (dev / staging)
 

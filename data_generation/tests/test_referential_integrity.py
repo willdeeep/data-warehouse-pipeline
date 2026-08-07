@@ -35,9 +35,12 @@ def test_cross_table_foreign_keys(frames):
     assert set(frames["sessions"]["user_crm_id"].dropna()).issubset(users)
     # transactions -> sessions
     assert set(frames["transactions"]["session_id"]).issubset(sessions)
-    # line items -> transactions + products
+    # line items -> transactions + products (product_id is the SKU; item_id is the per-unit key)
     assert set(frames["transactionsanditems"]["transaction_id"]).issubset(txns)
-    assert set(frames["transactionsanditems"]["item_id"]).issubset(products)
+    assert set(frames["transactionsanditems"]["product_id"]).issubset(products)
+    # returns -> a specific sold unit
+    items = set(frames["transactionsanditems"]["item_id"])
+    assert set(frames["product_returns"]["item_id"]).issubset(items)
     # funnel events -> sessions
     assert set(frames["funnelevents"]["session_id"]).issubset(sessions)
     # returns -> transactions

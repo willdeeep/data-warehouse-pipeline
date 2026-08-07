@@ -40,8 +40,8 @@ models:
       +contract:
         enforced: false  # Set to true when ready to enforce schema contracts
     
-    # Intermediate models configuration  
-    intermediate:
+    # Core models configuration (normalized conformed star schema — was "intermediate")
+    core:
       +materialized: table
       +docs:
         node_color: "#70AD47"

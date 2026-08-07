@@ -14,35 +14,40 @@ sources:
   - name: adplatform_data
     description: 'Daily advertising platform metrics aggregated across multiple channels'
     tests:
-      - dbt_utils.unique_combination_of_columns:
+    - dbt_utils.unique_combination_of_columns:
+        arguments:
           combination_of_columns:
-            - date
+          - date
     columns:
     - name: date
       description: 'Date of advertising activity'
       data_type: DATE
       tests:
-        - not_null
-        - dbt_utils.accepted_range:
+      - not_null
+      - dbt_utils.accepted_range:
+          arguments:
             min_value: "'2020-01-01'"
             max_value: "current_date()"
     - name: criteo_clicks
       description: 'Number of clicks from Criteo advertising campaigns'
       data_type: INTEGER
       tests:
-        - dbt_utils.accepted_range:
+      - dbt_utils.accepted_range:
+          arguments:
             min_value: 0
     - name: criteo_cost
       description: 'Total advertising spend on Criteo platform in USD'
       data_type: FLOAT
       tests:
-        - dbt_utils.accepted_range:
+      - dbt_utils.accepted_range:
+          arguments:
             min_value: 0
     - name: criteo_impressions
       description: 'Number of ad impressions served through Criteo platform'
       data_type: INTEGER
       tests:
-        - dbt_utils.accepted_range:
+      - dbt_utils.accepted_range:
+          arguments:
             min_value: 0
     - name: date
       description: 'Date of advertising activity'
@@ -51,19 +56,22 @@ sources:
       description: 'Number of clicks from Google Ads campaigns'
       data_type: INTEGER
       tests:
-        - dbt_utils.accepted_range:
+      - dbt_utils.accepted_range:
+          arguments:
             min_value: 0
     - name: google_cost
       description: 'Total advertising spend on Google Ads platform in USD'
       data_type: FLOAT
       tests:
-        - dbt_utils.accepted_range:
+      - dbt_utils.accepted_range:
+          arguments:
             min_value: 0
     - name: google_impressions
       description: 'Number of ad impressions served through Google Ads platform'
       data_type: INTEGER
       tests:
-        - dbt_utils.accepted_range:
+      - dbt_utils.accepted_range:
+          arguments:
             min_value: 0
     - name: meta_clicks
       description: 'Number of clicks from Meta (Facebook/Instagram) advertising campaigns'
@@ -110,29 +118,31 @@ sources:
       description: 'Date when the event occurred'
       data_type: DATE
       tests:
-        - not_null
+      - not_null
     - name: device_category
       description: 'Type of device used (desktop, mobile, tablet)'
       data_type: STRING
       tests:
-        - accepted_values:
+      - accepted_values:
+          config:
+            severity: warn
+          arguments:
             values: ['desktop', 'mobile', 'tablet', 'unknown']
-            config:
-              severity: warn
     - name: event_name
       description: 'Name of the tracked event (page_view, add_to_cart, purchase, etc.)'
       data_type: STRING
       tests:
-        - not_null
-        - accepted_values:
+      - not_null
+      - accepted_values:
+          config:
+            severity: warn
+          arguments:
             values: ['page_view', 'add_to_cart', 'purchase', 'begin_checkout', 'view_item', 'remove_from_cart']
-            config:
-              severity: warn
     - name: event_time
       description: 'Timestamp when the event occurred'
       data_type: DATETIME
       tests:
-        - not_null
+      - not_null
     - name: item_id
       description: 'Unique identifier for the product associated with the event'
       data_type: STRING
@@ -140,7 +150,7 @@ sources:
       description: 'Unique identifier for the user session'
       data_type: STRING
       tests:
-        - not_null
+      - not_null
     - name: transaction_id
       description: 'Unique identifier for the transaction (null for non-purchase events)'
       data_type: STRING
@@ -154,94 +164,100 @@ sources:
   - name: product_costs
     description: 'Cost basis for each product used in margin and profitability calculations'
     tests:
-      - dbt_utils.unique_combination_of_columns:
+    - dbt_utils.unique_combination_of_columns:
+        arguments:
           combination_of_columns:
-            - item_id
+          - item_id
     columns:
     - name: cost_of_item
       description: 'Cost to acquire or manufacture the product in USD'
       data_type: FLOAT
       tests:
-        - not_null
-        - dbt_utils.accepted_range:
+      - not_null
+      - dbt_utils.accepted_range:
+          arguments:
             min_value: 0
     - name: item_id
       description: 'Unique identifier for the product'
       data_type: STRING
       tests:
-        - not_null
-        - unique
+      - not_null
+      - unique
 
   - name: product_listprices
     description: 'List prices for products before any discounts or promotions'
     tests:
-      - dbt_utils.unique_combination_of_columns:
+    - dbt_utils.unique_combination_of_columns:
+        arguments:
           combination_of_columns:
-            - item_id
+          - item_id
     columns:
     - name: item_id
       description: 'Unique identifier for the product'
       data_type: STRING
       tests:
-        - not_null
-        - unique
+      - not_null
+      - unique
     - name: item_list_price
       description: 'Official list price of the product in USD'
       data_type: FLOAT
       tests:
-        - not_null
-        - dbt_utils.accepted_range:
+      - not_null
+      - dbt_utils.accepted_range:
+          arguments:
             min_value: 0
-
   - name: product_returns
     description: 'Product return transactions and status tracking'
     tests:
-      - dbt_utils.unique_combination_of_columns:
+    - dbt_utils.unique_combination_of_columns:
+        config:
+          severity: warn
+        arguments:
           combination_of_columns:
-            - transaction_id
-            - item_id
-          config:
-            severity: warn
+          - transaction_id
+          - item_id
     columns:
     - name: return_date
       description: 'Date when the return was processed'
       data_type: DATE
       tests:
-        - not_null
-        - dbt_utils.accepted_range:
+      - not_null
+      - dbt_utils.accepted_range:
+          arguments:
             min_value: "'2020-01-01'"
             max_value: "current_date()"
     - name: transaction_id
       description: 'Unique identifier for the original transaction'
       data_type: STRING
       tests:
-        - not_null
+      - not_null
     - name: item_id
-      description: 'Unique identifier for the returned product'
+      description: 'Per-unit identifier of the specific returned item (FK to transactionsanditems.item_id)'
       data_type: STRING
       tests:
-        - not_null
-    - name: item_quantity
-      description: 'Original quantity of items purchased'
-      data_type: INTEGER
+      - not_null
+    - name: product_id
+      description: 'Product SKU of the returned item (FK to productattributes.item_id)'
+      data_type: STRING
       tests:
-        - dbt_utils.accepted_range:
-            min_value: 1
+      - not_null
     - name: return_quantity
-      description: 'Number of items returned'
+      description: 'Units returned in this row (always 1 — one row per returned unit)'
       data_type: FLOAT
       tests:
-        - dbt_utils.accepted_range:
+      - dbt_utils.accepted_range:
+          arguments:
             min_value: 0
     - name: return_status
       description: 'Status of the return (Refund, Exchange)'
       data_type: STRING
       tests:
-        - accepted_values:
-            values: ['Refund', 'Exchange']
-            config:
-              severity: warn
+      - accepted_values:
+          config:
+            severity: warn
 
+          arguments:
+            values: ['Refund', 'Exchange']
   - name: productattributes
     description: 'Product catalog with attributes and categorization'
     columns:
@@ -249,8 +265,8 @@ sources:
       description: 'Unique identifier for the product'
       data_type: STRING
       tests:
-        - not_null
-        - unique
+      - not_null
+      - unique
     - name: item_brand
       description: 'Brand name of the product'
       data_type: STRING
@@ -277,35 +293,34 @@ sources:
       description: 'Date when the session occurred'
       data_type: DATE
       tests:
-        - not_null
-        - dbt_utils.accepted_range:
+      - not_null
+      - dbt_utils.accepted_range:
+          arguments:
             min_value: "'2020-01-01'"
             max_value: "current_date()"
     - name: device_category
       description: 'Type of device used (desktop, mobile, tablet)'
       data_type: STRING
       tests:
-        - accepted_values:
+      - accepted_values:
+          config:
+            severity: warn
+          arguments:
             values: ['desktop', 'mobile', 'tablet', 'unknown']
-            config:
-              severity: warn
     - name: session_id
       description: 'Session ID for the user session (each session will be recorded across multiple lines)'
       data_type: STRING
       tests:
-        - not_null
+      - not_null
     - name: traffic_medium
       description: 'Marketing medium that drove the session (organic, paid, email, etc.)'
       data_type: STRING
       tests:
-        - accepted_values:
-            values: [
-              'organic', 'paid', 'email', 'social', 'direct', 'referral', 
-              'cpc', 'display', '(none)','crm', 'affiliate', 'influencer', 
-              'cpm', 'organic_social', 'paid_social', 'comparison', 'cpv'
-              ]
-            config:
-              severity: warn
+      - accepted_values:
+          config:
+            severity: warn
+          arguments:
+            values: ['organic', 'paid', 'email', 'social', 'direct', 'referral', 'cpc', 'display', '(none)', 'crm', 'affiliate', 'influencer', 'cpm', 'organic_social', 'paid_social', 'comparison', 'cpv']
     - name: traffic_source
       description: 'Specific source that drove the session (google, facebook, direct, etc.)'
       data_type: STRING
@@ -319,29 +334,31 @@ sources:
   - name: transactions
     description: 'E-commerce transaction summary data with revenue and shipping details'
     tests:
-      - dbt_utils.unique_combination_of_columns:
+    - dbt_utils.unique_combination_of_columns:
+        arguments:
           combination_of_columns:
-            - transaction_id
+          - transaction_id
     columns:
     - name: transaction_id
       description: 'Unique identifier for the transaction'
       data_type: STRING
       tests:
-        - not_null
-        - unique
+      - not_null
+      - unique
     - name: date
       description: 'Date when the transaction occurred'
       data_type: DATE
       tests:
-        - not_null
-        - dbt_utils.accepted_range:
+      - not_null
+      - dbt_utils.accepted_range:
+          arguments:
             min_value: "'2020-01-01'"
             max_value: "current_date()"
     - name: session_id
       description: 'Unique identifier for the session where transaction occurred'
       data_type: STRING
       tests:
-        - not_null
+      - not_null
     - name: transaction_coupon
       description: 'Coupon code applied to the transaction'
       data_type: STRING
@@ -349,19 +366,22 @@ sources:
       description: 'Total revenue from the transaction excluding shipping in USD'
       data_type: FLOAT
       tests:
-        - dbt_utils.accepted_range:
+      - dbt_utils.accepted_range:
+          arguments:
             min_value: 0
     - name: transaction_shipping
       description: 'Shipping cost charged for the transaction in USD'
       data_type: FLOAT
       tests:
-        - dbt_utils.accepted_range:
+      - dbt_utils.accepted_range:
+          arguments:
             min_value: 0
     - name: transaction_total
       description: 'Total amount charged including shipping and taxes in USD'
       data_type: FLOAT
       tests:
-        - dbt_utils.accepted_range:
+      - dbt_utils.accepted_range:
+          arguments:
             min_value: 0
     - name: user_cookie_id
       description: 'Anonymous user identifier based on browser cookie'
@@ -371,58 +391,64 @@ sources:
       data_type: STRING
 
   - name: transactionsanditems
-    description: 'Transaction line items showing individual products purchased in each transaction'
-    tests:
-      - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - transaction_id
-            - item_id
-          config:
-            severity: warn
+    description: 'Transaction line items: one row per unit sold (item_id), with the product SKU (product_id)'
     columns:
     - name: item_id
-      description: 'Unique identifier for the product purchased'
+      description: 'Globally-unique per-unit line-item key (transaction grain)'
       data_type: STRING
       tests:
-        - not_null
+      - not_null
+      - unique
     - name: transaction_id
       description: 'Unique identifier for the transaction'
       data_type: STRING
       tests:
-        - not_null
+      - not_null
+    - name: product_id
+      description: 'Product SKU purchased (FK to productattributes.item_id)'
+      data_type: STRING
+      tests:
+      - not_null
     - name: date
       description: 'Date when the transaction occurred'
       data_type: DATE
       tests:
-        - not_null
-        - dbt_utils.accepted_range:
+      - not_null
+      - dbt_utils.accepted_range:
+          arguments:
             min_value: "'2020-01-01'"
             max_value: "current_date()"
     - name: item_price
       description: 'Price paid for the individual item in USD'
       data_type: FLOAT
       tests:
-        - dbt_utils.accepted_range:
+      - dbt_utils.accepted_range:
+          arguments:
             min_value: 0
     - name: item_quantity
       description: 'Number of units purchased for this item'
       data_type: INTEGER
       tests:
-        - dbt_utils.accepted_range:
+      - dbt_utils.accepted_range:
+          arguments:
             min_value: 1
-
-
   - name: users
-    description: 'Customer profile and lifecycle data with subscription status'
+    description: 'Customer profile history (SCD2 source): one row per user_crm_id per profile version, ordered by valid_from.'
+    tests:
+    - dbt_utils.unique_combination_of_columns:
+        arguments:
+          combination_of_columns:
+          - user_crm_id
+          - valid_from
     columns:
     - name: user_crm_id # - unique - temprorarily disabled to allow for de-duplication of CRM IDs during staging
       description: 'Customer relationship management ID for registered users'
       data_type: STRING
       tests:
-        - not_null
-        - sql_injection_detection:
-            config:
-              severity: warn
+      - not_null
+      - sql_injection_detection:
+          config:
+            severity: warn
     - name: city
       description: 'City location of the user'
       data_type: STRING
@@ -451,14 +477,20 @@ sources:
       description: 'Self-reported gender of the user'
       data_type: STRING
       tests:
-        - accepted_values:
-            name: user_gender_valid_values
+      - accepted_values:
+          name: user_gender_valid_values
+          config:
+            severity: warn
+          arguments:
             values: ['M', 'F', 'Non-binary', 'Unknown']
-            config:
-              severity: warn
-        - sql_injection_detection:
-            config:
-              severity: warn
+      - sql_injection_detection:
+          config:
+            severity: warn
+    - name: valid_from
+      description: 'Effective date this profile version became current (SCD2 version key; half-open [valid_from, next valid_from)).'
+      data_type: DATE
+      tests:
+      - not_null
 
 
 - name: ebay
@@ -466,71 +498,76 @@ sources:
   schema: "{{ env_var('DBT_WAREHOUSE_DATASET', 'warehouse') }}"
   description: 'eBay data loaded from external pipeline'
   tables:
-    - name: ebay_transformed
-      description: 'Transformed eBay data loaded via Python pipeline'
+  - name: ebay_transformed
+    description: 'Transformed eBay data loaded via Python pipeline'
+    tests:
+    - dbt_utils.unique_combination_of_columns:
+        arguments:
+          combination_of_columns:
+          - id
+    columns:
+    - name: id
+      description: 'Unique identifier for eBay listing'
+      data_type: STRING
       tests:
-        - dbt_utils.unique_combination_of_columns:
-            combination_of_columns:
-              - id
-      columns:
-        - name: id
-          description: 'Unique identifier for eBay listing'
-          data_type: STRING
-          tests:
-            - not_null
-            - unique
-        - name: search_term
-          description: 'Search term used to find this listing'
-          data_type: STRING
-        - name: title
-          description: 'eBay listing title'
-          data_type: STRING
-          tests:
-            - not_null
-        - name: price
-          description: 'Listed price of the item'
-          data_type: FLOAT
-          tests:
-            - dbt_utils.accepted_range:
-                min_value: 0
-        - name: currency
-          description: 'Currency of the listed price'
-          data_type: STRING
-          tests:
-            - accepted_values:
-                values: ['USD', 'EUR', 'GBP', 'CAD']
-                config:
-                  severity: warn
-        - name: category
-          description: 'eBay category classification'
-          data_type: STRING
-        - name: brand
-          description: 'Brand name of the product'
-          data_type: STRING
-        - name: condition
-          description: 'Item condition (new, used, refurbished, etc.)'
-          data_type: STRING
-          tests:
-            - accepted_values:
-                values: ['New with tags', 'New with box', 'New without tags']
-                config:
-                  severity: warn
-        - name: gender
-          description: 'Target gender for the product (oout of mens, womens, unisex, kids)'
-          data_type: STRING
-          tests:
-            - accepted_values:
-                values: ['mens', 'womens', 'unisex', 'kids']
-                config:
-                  severity: warn
-        - name: url
-          description: 'eBay listing URL'
-          data_type: STRING
-          tests:
-            - not_null
-        - name: transformation_timestamp
-          description: 'Timestamp when data was transformed and loaded'
-          data_type: TIMESTAMP
-          tests:
-            - not_null
+      - not_null
+      - unique
+    - name: search_term
+      description: 'Search term used to find this listing'
+      data_type: STRING
+    - name: title
+      description: 'eBay listing title'
+      data_type: STRING
+      tests:
+      - not_null
+    - name: price
+      description: 'Listed price of the item'
+      data_type: FLOAT
+      tests:
+      - dbt_utils.accepted_range:
+          arguments:
+            min_value: 0
+    - name: currency
+      description: 'Currency of the listed price'
+      data_type: STRING
+      tests:
+      - accepted_values:
+          config:
+            severity: warn
+          arguments:
+            values: ['USD', 'EUR', 'GBP', 'CAD']
+    - name: category
+      description: 'eBay category classification'
+      data_type: STRING
+    - name: brand
+      description: 'Brand name of the product'
+      data_type: STRING
+    - name: condition
+      description: 'Item condition (new, used, refurbished, etc.)'
+      data_type: STRING
+      tests:
+      - accepted_values:
+          config:
+            severity: warn
+          arguments:
+            values: ['New with tags', 'New with box', 'New without tags']
+    - name: gender
+      description: 'Target gender for the product (oout of mens, womens, unisex, kids)'
+      data_type: STRING
+      tests:
+      - accepted_values:
+          config:
+            severity: warn
+          arguments:
+            values: ['mens', 'womens', 'unisex', 'kids']
+    - name: url
+      description: 'eBay listing URL'
+      data_type: STRING
+      tests:
+      - not_null
+    - name: transformation_timestamp
+      description: 'Timestamp when data was transformed and loaded'
+      data_type: TIMESTAMP
+      tests:
+      - not_null
 

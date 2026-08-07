@@ -17,13 +17,13 @@
       'expected_schema': 'dev_warehouse' if target.name == 'prod' else target.schema ~ '_staging'
     },
     {
-      'name': 'intermediate_model', 
-      'path': ['intermediate', 'fact_sessions'],
-      'expected_schema': 'dev_warehouse' if target.name == 'prod' else target.schema ~ '_intermediate'
+      'name': 'core_model', 
+      'path': ['core', 'fct_sessions'],
+      'expected_schema': 'dev_warehouse' if target.name == 'prod' else target.schema ~ '_core'
     },
     {
       'name': 'marts_model',
-      'path': ['marts', 'transactions_mart'],
+      'path': ['marts', 'rpt_transactions'],
       'expected_schema': 'warehouse' if target.name == 'prod' else target.schema ~ '_marts'
     },
     {
@@ -48,8 +48,8 @@
     {# Test with custom schema based on path #}
     {% if 'staging' in model.path %}
       {% set custom_schema = 'staging' %}
-    {% elif 'intermediate' in model.path %}
-      {% set custom_schema = 'intermediate' %}
+    {% elif 'core' in model.path %}
+      {% set custom_schema = 'core' %}
     {% elif 'marts' in model.path %}
       {% set custom_schema = 'marts' %}
     {% elif 'dim' in model.path %}
@@ -62,7 +62,7 @@
     {{ log("   Result (with custom): " ~ result_with_custom, info=True) }}
     
     {% if target.name == 'prod' %}
-      {% if 'staging' in model.path or 'intermediate' in model.path %}
+      {% if 'staging' in model.path or 'core' in model.path %}
         {% set expected = 'dev_warehouse' %}
       {% elif 'marts' in model.path %}
         {% set expected = 'warehouse' %}
@@ -89,7 +89,7 @@
   {% if target.name == 'prod' %}
     {{ log("📊 PRODUCTION ENVIRONMENT ROUTING:", info=True) }}
     {{ log("   • staging/* → dev_warehouse", info=True) }}
-    {{ log("   • intermediate/* → dev_warehouse", info=True) }}
+    {{ log("   • core/* → dev_warehouse", info=True) }}
     {{ log("   • marts/* → warehouse", info=True) }}
     {{ log("   • other/* → custom_schema_name", info=True) }}
   {% else %}
