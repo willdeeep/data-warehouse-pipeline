@@ -7,6 +7,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ## [Unreleased]
 
+## [0.2.2] — 2026-08-07
+
+### Fixed
+- Ignore Terraform plan artifacts (`*.tfplan` / `tfplan`): saved plans are binary,
+  environment-specific, and can embed resolved (sometimes sensitive) variable values, so they must
+  never be committed. Surfaced during staging UAT (#67).
+
+## [0.2.1] — 2026-08-07
+
 ### Fixed
 - **Terraform config no longer depends on `.env` shell expansion.** The `.env`/`.env.example`
   `TF_VAR_*=${GCP_PROJECT_ID}` self-references were removed: under a literal (non-shell) dotenv
