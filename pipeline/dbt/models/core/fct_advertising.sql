@@ -1,6 +1,6 @@
 /*
 ===================================================================================
-MODEL: fact_advertising
+MODEL: fct_advertising
 ===================================================================================
 
 PURPOSE:
@@ -47,18 +47,13 @@ WITH advertising_base AS (
 fact_advertising AS (
     SELECT
         -- Primary key: date + platform
-        CONCAT('AD_', 
-            FORMAT_DATE('%Y%m%d', date), '_',
-            TO_HEX(MD5(platform_name))
-        ) AS ad_key,
+        {{ generate_int_surrogate_key(['date', 'platform_name']) }} AS ad_key,
         
         -- Date dimension foreign key
         CAST(FORMAT_DATE('%Y%m%d', date) AS INT64) AS date_key,
         
         -- Platform dimension foreign key
-        CONCAT('PLATFORM_', 
-            TO_HEX(MD5(COALESCE(platform_name, 'unknown')))
-        ) AS platform_key,
+        {{ generate_int_surrogate_key(['platform_name']) }} AS platform_key,
         
         -- Advertising metrics
         COALESCE(impressions, 0) AS impressions,

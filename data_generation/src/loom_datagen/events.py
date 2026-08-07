@@ -70,17 +70,16 @@ def build_returns(cfg, rng, items: pd.DataFrame) -> pd.DataFrame:
                 "return_date",
                 "transaction_id",
                 "item_id",
-                "item_quantity",
+                "product_id",
                 "return_quantity",
                 "return_status",
             ]
         )
 
+    # Each returned unit is one row referencing the specific item_id sold (return_quantity is 1).
     sample = items.sample(frac=0.05, random_state=cfg.seed).reset_index(drop=True)
     n = len(sample)
 
-    item_qty = sample["item_quantity"].to_numpy()
-    return_qty = np.array([int(rng.integers(1, q + 1)) for q in item_qty], dtype=float)
     offsets = rng.integers(1, 31, n)
     return_date = (pd.to_datetime(sample["date"]) + pd.to_timedelta(offsets, unit="D")).dt.date
 
@@ -89,8 +88,8 @@ def build_returns(cfg, rng, items: pd.DataFrame) -> pd.DataFrame:
             "return_date": return_date,
             "transaction_id": sample["transaction_id"].to_numpy(),
             "item_id": sample["item_id"].to_numpy(),
-            "item_quantity": item_qty,
-            "return_quantity": return_qty,
+            "product_id": sample["product_id"].to_numpy(),
+            "return_quantity": np.ones(n, dtype=float),
             "return_status": rng.choice(["Refund", "Exchange"], n, p=[0.7, 0.3]),
         }
     )

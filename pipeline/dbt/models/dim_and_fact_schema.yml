@@ -17,7 +17,7 @@ models:
       - name: category
         tests: [unique, not_null]
 
-  - name: ebay_fact_items
+  - name: ebay_fct_items
     description: "Fact table for eBay items"
     columns:
       - name: id

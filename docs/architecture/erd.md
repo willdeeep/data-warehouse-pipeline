@@ -2,578 +2,526 @@
 
 ## Overview
 
-This document illustrates the transformation of our database architecture from a flat, unstructured approach to a modern, normalized data warehouse with proper relationships and data modeling principles.
+This document illustrates the transformation of the Loom warehouse from a flat, unstructured
+source layout into a layered dimensional data warehouse (staging → core → marts) with conformed
+keys, a snowflaked ~3NF core, and SCD Type 2 history.
 
-## 🗃️ BEFORE: Legacy Database Structure (loom-insights.loom_warehouse)
+> **Source of truth.** The DBML below is kept in sync with the dbt model YAMLs
+> (`pipeline/dbt/models/**/*.yml`). If they ever disagree, the YAML wins — treat this doc as the
+> narrative overview and [dbt-build-summary.md](dbt-build-summary.md) as the validated build state.
 
-The original database was a simple collection of tables with minimal relationships and no proper dimensional modeling.
+## 🗃️ BEFORE: Legacy source structure (illustrative)
 
-### Legacy DBML Structure
+The upstream `loom_sync` mirror is a flat collection of tables with no enforced relationships,
+no dimensional modelling, and no historical tracking — the raw shape the warehouse cleans up.
+This section is an **illustrative** sketch of that "before" state, not a live schema.
 
 ```dbml
-// Legacy Database Structure - Flat tables with poor relationships
+// Legacy source structure — flat tables, no proper joins (illustrative)
 Project loom_legacy {
   database_type: 'BigQuery'
-  Note: 'Legacy loom-insights.loom_warehouse - Flat structure with no proper joins'
+  Note: 'Raw loom_sync mirror — flat structure, no keys or history'
 }
 
-// Legacy Tables - No primary/foreign key relationships
 Table users {
-  user_crm_id string [note: 'No proper primary key definition']
-  email string
+  user_crm_id string [note: 'No enforced primary key']
+  city string
   registration_date date
   loom_plus_status string
-  created_at timestamp
-  updated_at timestamp
-  
-  Note: 'Raw user data - no data quality constraints'
+  Note: 'Raw user data — no data quality constraints'
 }
 
 Table transactions {
-  transaction_id string [note: 'No proper primary key definition']
+  transaction_id string [note: 'No enforced primary key']
   user_crm_id string [note: 'No foreign key relationship']
-  transaction_date date
-  total_amount float
-  currency string
-  transaction_status string
-  payment_method string
-  created_at timestamp
-  
-  Note: 'Transaction headers - no item detail relationship'
+  date date
+  transaction_revenue float
+  Note: 'Transaction headers — no item detail relationship'
 }
 
-Table transaction_items {
+Table transactionitems {
   transaction_id string [note: 'No foreign key relationship']
-  product_id string [note: 'No product catalog relationship']
-  quantity int
-  price float
-  discount_amount float
-  created_at timestamp
-  
-  Note: 'Transaction line items - orphaned from products'
+  item_id string [note: 'No product catalog relationship']
+  item_quantity int
+  item_price float
+  Note: 'Line items — orphaned from products'
 }
 
 Table sessions {
-  session_id string [note: 'No proper primary key definition']
+  session_id string [note: 'No enforced primary key']
   user_crm_id string [note: 'No foreign key relationship']
-  session_start_time timestamp
-  session_end_time timestamp
-  page_views int
-  utm_source string
-  utm_medium string
-  utm_campaign string
-  device_type string
-  browser string
-  
-  Note: 'Session data - no behavioral event tracking'
+  date date
+  device_category string
+  traffic_source string
+  traffic_medium string
+  Note: 'Session data — no behavioural event linkage'
 }
 
-Table products {
-  product_id string [note: 'No proper primary key definition']
-  product_name string
-  category string
-  brand string
-  price float
-  cost float
-  description text
-  
-  Note: 'Basic product catalog - no hierarchy or attributes'
+Table productattributes {
+  item_id string [note: 'No enforced primary key']
+  item_name string
+  item_brand string
+  item_main_category string
+  item_sub_category string
+  Note: 'Flat catalog — no hierarchy, no cost/price join'
 }
 
-Table funnel_events {
-  event_id string [note: 'No proper primary key definition']
-  user_crm_id string [note: 'No foreign key relationship']
+Table funnelevents {
   session_id string [note: 'No foreign key relationship']
-  event_timestamp timestamp
+  event_time datetime
   event_name string
-  page_url string
-  event_parameters json
-  
-  Note: 'Raw events - no event taxonomy or standardization'
+  Note: 'Raw events — no taxonomy or standardization'
 }
 
 Table adplatform_data {
-  campaign_id string [note: 'No proper primary key definition']
   date date
+  platform string
   impressions int
   clicks int
-  cost float
-  conversions int
-  platform string
-  
-  Note: 'Advertising data - no attribution or customer journey linkage'
+  cost int
+  Note: 'Ad data in a wide per-platform layout — no attribution linkage'
 }
 
-// Legacy Issues:
+// Legacy issues:
 // 1. No primary/foreign key relationships
 // 2. No data quality constraints
-// 3. No dimensional modeling
-// 4. Inconsistent naming conventions
-// 5. No historical tracking (SCD)
-// 6. No aggregated marts for analytics
-// 7. Poor query performance due to flat structure
-// 8. Manual data quality checking
-// 9. No data lineage or documentation
+// 3. No dimensional modelling / conformed keys
+// 4. No historical tracking (SCD)
+// 5. No aggregated marts for analytics
 ```
 
-### Problems with Legacy Structure
+## 🏗️ AFTER: Modern layered warehouse
 
-1. **No Referential Integrity**: Tables existed in isolation with no enforced relationships
-2. **Poor Query Performance**: Every analytical query required complex JOINs across flat tables
-3. **No Data Quality**: No constraints or validation rules
-4. **Inconsistent Data Types**: Same concepts stored differently across tables
-5. **No Historical Tracking**: No ability to track changes over time
-6. **Limited Analytics**: No pre-aggregated data for common business questions
-7. **Manual Processes**: All data validation and cleaning done manually
-8. **No Documentation**: No schema documentation or data lineage
+The warehouse implements dimensional modelling with **conformed keys**, a **snowflaked ~3NF core**
+(geo and product hierarchies broken out), and **SCD Type 2** history on the customer and product
+dimensions. Naming: `stg_` (staging views) → `dim_`/`fct_`/`int_` (core) → `rpt_` (marts).
 
-## 🏗️ AFTER: Modern Data Warehouse Structure
+### Key conventions (see [dbt-build-summary.md](dbt-build-summary.md) §Data reconciliation, #36)
 
-Our new architecture implements dimensional modeling principles with proper relationships, data quality, and performance optimization.
+- **Natural keys are integer**: `user_crm_id`, `transaction_id`, `product_id`, `item_id`,
+  `date_key` (`YYYYMMDD`). `session_id` and `user_cookie_id` stay **string** (the natural fit for
+  session/cookie identifiers).
+- **Warehouse surrogate/FK keys are deterministic signed INT64** hashes via the
+  `generate_int_surrogate_key` macro (`FARM_FINGERPRINT(ARRAY_TO_STRING([...], '|'))`) —
+  **conformed**, so a child computes the same key its parent stores (no lookup join). These are the
+  `*_surrogate_key`, `country/region/brand/main_category/sub_category_key`, `platform_key`, `ad_key`.
+- The `ROW_NUMBER`-assigned dimension keys (`geo_key`, `device_key`, `medium_key`, `source_key`)
+  are plain integers.
+- Types below: `bigint` = INT64 conformed hash; `integer` = natural or row-number key.
 
-### Modern DBML Structure
+### Entity-relationship diagram (core star + snowflake)
+
+This Mermaid diagram renders on GitHub; the DBML block further down is the full column-level spec.
+Marts (`rpt_`) are denormalized reporting outputs derived from these entities — see
+[overview.md](overview.md) for the end-to-end lineage.
+
+```mermaid
+erDiagram
+    dim_country   ||--o{ dim_region       : "country_key"
+    dim_region    ||--o{ dim_geo          : "region_key"
+    dim_main_category ||--o{ dim_sub_category : "main_category_key"
+    dim_brand         ||--o{ dim_products     : "brand_key"
+    dim_sub_category  ||--o{ dim_products     : "sub_category_key"
+
+    dim_date      ||--o{ fct_transactions : "date_key"
+    dim_date      ||--o{ fct_sessions     : "date_key"
+    dim_date      ||--o{ fct_advertising  : "date_key"
+    dim_users     ||--o{ fct_transactions : "user_crm_id"
+    dim_users     ||--o{ fct_sessions     : "user_crm_id"
+    dim_products  ||--o{ fct_transactions : "product_id"
+    fct_sessions  ||--o{ fct_transactions : "session_id"
+
+    dim_source     ||--o{ fct_sessions    : "source_key"
+    dim_medium     ||--o{ fct_sessions    : "medium_key"
+    dim_devices    ||--o{ fct_sessions    : "device_key"
+    dim_geo        ||--o{ fct_sessions    : "geo_key"
+    dim_ad_platform ||--o{ fct_sessions   : "platform_key"
+    dim_ad_platform ||--o{ fct_advertising : "platform_key"
+
+    dim_users {
+        bigint user_surrogate_key PK
+        int user_crm_id "natural key (SCD2)"
+        timestamp valid_from
+        boolean is_current
+    }
+    dim_products {
+        bigint product_surrogate_key PK
+        int product_id "natural key (SCD2)"
+        bigint brand_key FK
+        bigint sub_category_key FK
+    }
+    dim_brand { bigint brand_key PK }
+    dim_main_category { bigint main_category_key PK }
+    dim_sub_category {
+        bigint sub_category_key PK
+        bigint main_category_key FK
+    }
+    dim_country { bigint country_key PK }
+    dim_region {
+        bigint region_key PK
+        bigint country_key FK
+    }
+    dim_geo {
+        int geo_key PK
+        bigint region_key FK
+    }
+    dim_date { int date_key PK }
+    dim_source { int source_key PK }
+    dim_medium { int medium_key PK }
+    dim_devices { int device_key PK }
+    dim_ad_platform { bigint platform_key PK }
+    fct_transactions {
+        int item_id PK "one row per unit sold"
+        int date_key FK
+        int product_id FK
+        int user_crm_id FK
+        string session_id FK
+    }
+    fct_sessions {
+        string session_id PK
+        int date_key FK
+        int user_crm_id FK
+    }
+    fct_advertising {
+        bigint ad_key PK
+        int date_key FK
+        bigint platform_key FK
+    }
+```
+
+### Full column-level spec (DBML)
 
 ```dbml
-// Modern Data Warehouse - Layered architecture with proper relationships
+// Modern data warehouse — layered architecture with conformed keys and SCD2
 Project loom_modern {
   database_type: 'BigQuery'
-  Note: 'Modern data warehouse with staging, intermediate, and mart layers'
+  Note: 'staging (views) -> core (snowflaked star, SCD2) -> marts (rpt_)'
 }
 
 //============================================================================
-// STAGING LAYER - Clean, standardized source data
+// STAGING LAYER — cleaned, standardized source (views)
 //============================================================================
+// stg_users, stg_transactions, stg_transactions_and_items, stg_sessions,
+// stg_product_attributes, stg_product_costs, stg_product_list_prices,
+// stg_product_returns, stg_funnel_events, stg_adplatform_data,
+// stg_adplatform_data_unpivoted  (11 views total)
 
 Table stg_users {
-  user_crm_id integer [pk, note: 'Primary key - unique customer identifier (cast from string)']
+  user_crm_id integer [pk, note: 'Cast from source string; SAFE_CAST filtered to valid INT64']
   city string
-  user_gender string [note: 'M|F|Non-binary|Unknown']
+  gender string
   registration_date date [not null]
   latest_login_date date
   first_purchase_date date
   latest_purchase_date date
   opt_in_status boolean
-  loom_plus_status boolean [note: 'subscription program enrollment']
+  loom_plus_status boolean
   loom_plus_tier string
-  dbt_updated_at timestamp [not null]
-  dbt_valid_from timestamp [not null]
-  
-  Note: 'Staging: Cleaned and standardized user profiles with SCD metadata'
-}
-
-Table stg_transactions {
-  transaction_id string [pk, note: 'Primary key - unique transaction identifier']
-  date date [not null]
-  user_cookie_id string [note: 'Anonymous user identifier']
-  user_crm_id integer [ref: > stg_users.user_crm_id]
-  session_id string [note: 'Session where transaction occurred']
-  transaction_coupon string
-  transaction_revenue float [note: 'Revenue excluding shipping']
-  transaction_shipping float [note: 'Shipping cost']
-  transaction_total float [note: 'Total including shipping and taxes']
-  
-  Note: 'Staging: Clean transaction headers with proper typing'
+  Note: 'Staging: cleaned user profiles (SCD2 history added downstream in dim_users)'
 }
 
 Table stg_transactions_and_items {
-  transaction_id string [ref: > stg_transactions.transaction_id, not null]
-  item_id string [not null]
+  transaction_id integer [not null]
+  item_id integer [pk, note: 'Globally-unique per unit sold (#56)']
   date date [not null]
   item_price float [not null]
   item_quantity integer [not null]
-  
-  indexes {
-    (transaction_id, item_id) [pk]
-  }
-  
-  Note: 'Staging: Transaction line items linking transactions to products'
-}
-
-Table stg_sessions {
-  session_id string [pk, note: 'Primary key - unique session identifier']
-  date date [not null]
-  user_cookie_id string [note: 'Anonymous user identifier']
-  user_crm_id integer [ref: > stg_users.user_crm_id]
-  city string [note: 'Geographic location']
-  device_category string [note: 'desktop|mobile|tablet|unknown']
-  traffic_medium string [note: 'standardized traffic mediums']
-  traffic_source string [note: 'standardized traffic sources like google, meta, etc.']
-  session_count integer [note: 'Aggregated session count for duplicate session_ids']
-  start_date date [note: 'First date for sessions spanning multiple dates']
-  end_date date [note: 'Last date for sessions spanning multiple dates']
-  dbt_updated_at timestamp [not null]
-  
-  Note: 'Staging: Enhanced session data with traffic source standardization'
-}
-
-Table stg_product_attributes {
-  item_id string [pk, not null]
-  item_brand string [note: 'Brand name of the product']
-  item_name string [note: 'Display name of the product']
-  item_main_category string [note: 'Primary category classification']
-  item_sub_category string [note: 'Secondary category classification']
-  item_gender string [note: 'Target gender (male, female, unisex)']
-  dbt_updated_at timestamp [not null]
-  
-  Note: 'Staging: Product catalog with standardized taxonomy'
-}
-
-Table stg_funnel_events {
-  session_id string [ref: > stg_sessions.session_id, not null]
-  event_time datetime [not null]
-  event_name string [not null, note: 'page_view|add_to_cart|purchase|begin_checkout|view_item|remove_from_cart']
-  date date [not null]
-  user_cookie_id string [note: 'Anonymous user identifier']
-  user_crm_id integer [ref: > stg_users.user_crm_id]
-  transaction_id string [note: 'For purchase events']
-  item_id string [ref: > stg_product_attributes.item_id]
-  device_category string [note: 'desktop|mobile|tablet|unknown']
-  
-  indexes {
-    (session_id, event_time, event_name, item_id) [pk]
-  }
-  
-  Note: 'Staging: Standardized behavioral events with product context'
+  Note: 'Staging: transaction line items, one row per unit sold'
 }
 
 //============================================================================
-// INTERMEDIATE LAYER - Dimensional models and business logic
+// CORE LAYER — conformed dimensions + facts (snowflaked ~3NF)
 //============================================================================
 
+// ---- Customer (SCD Type 2) ----
 Table dim_users {
-  user_crm_id integer [pk, note: 'Natural key - primary identifier']
+  user_surrogate_key bigint [pk, note: 'Conformed INT64 hash of (user_crm_id, valid_from)']
+  user_crm_id integer [not null, note: 'Natural key — many rows per user across versions']
   city string
-  gender string [note: 'M|F|Non-binary|Unknown']
+  gender string
   registration_date date
   latest_login_date date
   first_purchase_date date
-  latest_purchase_date date
+  last_purchase_date date
   opt_in_status boolean
   loom_plus_status boolean
   loom_plus_tier string
-  lifetime_orders integer [note: 'Total number of orders']
-  lifetime_value float [note: 'Total customer lifetime value']
-  
-  // SCD Type 2 fields
+  lifetime_orders integer
+  lifetime_value float
   valid_from timestamp [not null]
-  valid_to timestamp
-  is_current boolean [default: true]
-  dbt_updated_at timestamp [not null]
-  
-  Note: 'Dimension: Customer master with SCD Type 2 for historical tracking'
+  valid_to timestamp [note: 'NULL for the current version']
+  is_current boolean [not null]
+  Note: 'Dimension: customer master, SCD Type 2 (one is_current per user)'
 }
 
+// ---- Product (SCD Type 2, keys-only; hierarchy snowflaked out) ----
 Table dim_products {
-  product_id string [pk, note: 'Natural key - item_id from source']
-  name string [note: 'item_name from source']
-  brand string [note: 'item_brand from source']
-  main_category string [note: 'item_main_category from source']
-  sub_category string [note: 'item_sub_category from source']
-  gender_target string [note: 'item_gender from source']
-  list_price float [note: 'from product_listprices source']
-  unit_cost float [note: 'from product_costs source']
-  
-  // SCD Type 2 fields for product changes
+  product_surrogate_key bigint [pk, note: 'Conformed INT64 hash of (product_id, valid_from)']
+  product_id integer [not null, note: 'Natural key (SKU)']
+  brand_key bigint [ref: > dim_brand.brand_key, note: 'FK — snowflaked out']
+  sub_category_key bigint [ref: > dim_sub_category.sub_category_key, note: 'FK — main reachable via sub']
+  name string
+  gender_target string
+  list_price float
+  unit_cost float
+  profit_margin float [note: '(list_price - unit_cost) / list_price']
   valid_from timestamp [not null]
   valid_to timestamp
-  is_current boolean [default: true]
-  dbt_updated_at timestamp [not null]
-  
-  Note: 'Dimension: Product master with hierarchy and SCD Type 2'
+  is_current boolean [not null]
+  Note: 'Dimension: product master, SCD2, keys-only (text lives in the snowflaked dims)'
 }
 
+Table dim_brand {
+  brand_key bigint [pk, note: 'Conformed hash of brand']
+  brand_name string
+}
+Table dim_main_category {
+  main_category_key bigint [pk, note: 'Conformed hash of main category']
+  main_category_name string
+}
+Table dim_sub_category {
+  sub_category_key bigint [pk, note: 'Conformed hash of sub category']
+  sub_category_name string
+  main_category_key bigint [ref: > dim_main_category.main_category_key, note: 'FK — snowflaked parent']
+}
+
+// ---- Geography (snowflaked: country <- region <- geo(city leaf)) ----
+Table dim_geo {
+  geo_key integer [pk, note: 'City grain (ROW_NUMBER)']
+  city string
+  region_key bigint [ref: > dim_region.region_key, note: 'FK; NULL when no region parsed']
+}
+Table dim_region {
+  region_key bigint [pk, note: 'Conformed hash of (region, country)']
+  region_name string
+  country_key bigint [ref: > dim_country.country_key, note: 'FK — snowflaked parent']
+}
+Table dim_country {
+  country_key bigint [pk, note: 'Conformed hash of country']
+  country_name string [note: "Constant 'US' at current data scale — thin-data caveat"]
+}
+
+// ---- Marketing / device dimensions ----
+Table dim_source {
+  source_key integer [pk]
+  source string [note: 'e.g. google, meta, tiktok']
+}
+Table dim_medium {
+  medium_key integer [pk]
+  medium string [note: 'e.g. organic, cpc, social']
+  medium_category string [note: 'Organic, Paid Search, Social, Display, ...']
+}
+Table dim_devices {
+  device_key integer [pk]
+  device_type string [note: 'Mobile, Desktop, Tablet']
+  browser string
+  os string
+}
+Table dim_ad_platform {
+  platform_key bigint [pk, note: 'Conformed hash of platform_name']
+  platform_name string
+  channel_type string [note: 'Paid Social, Search, DSP, ...']
+}
+
+// ---- Date ----
 Table dim_date {
-  date_key int [pk, note: 'YYYYMMDD format']
-  date_actual date [unique, not null]
-  day_of_week int [not null]
-  day_name string [not null]
-  day_of_month int [not null]
-  day_of_year int [not null]
-  week_of_year int [not null]
-  month int [not null]
-  month_name string [not null]
-  quarter int [not null]
-  year int [not null]
-  is_weekend boolean [not null]
-  is_holiday boolean [default: false]
-  fiscal_year int
-  fiscal_quarter int
-  
-  Note: 'Dimension: Date dimension for time-based analysis'
+  date_key integer [pk, note: 'YYYYMMDD']
+  date date [unique, not null]
+  day_of_week integer
+  month integer
+  quarter integer
+  year integer
+  is_weekend boolean
+  is_holiday boolean
 }
 
-Table fact_transactions {
-  transaction_product_id string [pk, note: 'Composite key: transaction_id + item_id']
+// ---- Facts ----
+Table fct_transactions {
+  item_id integer [pk, note: 'Grain: one row per unit sold, globally unique (#56)']
   date_key integer [ref: > dim_date.date_key, not null]
-  user_crm_id integer [ref: > dim_users.user_crm_id]
-  user_cookie_id string [note: 'Anonymous user tracking']
-  session_id string
-  product_id string [ref: > dim_products.product_id, not null]
-  
-  // Measures
-  product_quantity integer [not null]
-  product_price float [not null]
-  product_revenue float [not null]
+  user_crm_id integer [ref: > dim_users.user_crm_id, note: 'NULL for guest checkout']
+  user_cookie_id string
+  session_id string [ref: > fct_sessions.session_id]
+  product_id integer [ref: > dim_products.product_id, not null]
+  transaction_id integer [note: 'Natural transaction identifier (repeats across its items)']
+  product_price float
+  product_quantity integer
+  product_revenue float [note: 'price * quantity']
+  transaction_revenue float
+  transaction_shipping float
+  transaction_total float
   transaction_coupon string
-  return_status string [note: 'from product_returns']
+  pricing_type string [note: 'Discount | Full Price']
+  customer_type string [note: 'Registered | Guest']
+  loom_plus_status string
+  return_status string
   return_quantity integer
-  
-  dbt_updated_at timestamp [not null]
-  
-  Note: 'Fact: Transaction line items with product relationships and return status'
+  return_date date
+  has_return boolean
+  return_rate_pct float
+  Note: 'Fact: transaction line items, per-unit grain, with returns + profitability inputs'
 }
 
-Table fact_sessions {
-  session_id string [pk, note: 'Natural key - unique session identifier']
+Table fct_sessions {
+  session_id string [pk, note: 'Natural key; unique test at severity: warn']
   date_key integer [ref: > dim_date.date_key, not null]
   user_crm_id integer [ref: > dim_users.user_crm_id]
-  user_cookie_id string [note: 'Anonymous user tracking']
-  
-  // Geographic and device context
-  city string
-  device_category string [note: 'desktop|mobile|tablet|unknown']
-  
-  // Traffic attribution
-  traffic_source string [note: 'standardized sources: google, meta, etc.']
-  traffic_medium string [note: 'standardized mediums']
-  
-  // Session metrics (calculated from funnel events)
-  session_duration_minutes float
-  page_views integer [default: 0]
-  events_count integer [default: 0]
-  converted_flag boolean [note: 'session resulted in purchase']
-  conversion_value float [default: 0]
-  
-  dbt_updated_at timestamp [not null]
-  
-  Note: 'Fact: Session-level metrics with conversion tracking and attribution'
+  user_cookie_id string
+  source_key integer [ref: > dim_source.source_key]
+  medium_key integer [ref: > dim_medium.medium_key]
+  platform_key bigint [ref: > dim_ad_platform.platform_key]
+  geo_key integer [ref: > dim_geo.geo_key]
+  device_key integer [ref: > dim_devices.device_key]
+  page_views integer
+  add_to_cart_flag boolean
+  bounce_flag boolean
+  transaction_count integer
+  session_duration_seconds float [note: 'NULL for bounced sessions']
+  Note: 'Fact: session-level metrics with attribution + device/geo context'
 }
 
-//============================================================================
-// MARTS LAYER - Business-ready analytics datasets
-//============================================================================
-
-Table customer_activity_mart {
-  user_crm_id integer [pk, note: 'Links to dim_users.user_crm_id']
-  activity_type string [note: 'profile_change|transaction']
-  activity_date date [not null]
-  activity_timestamp datetime [not null]
-  
-  // Customer Profile at time of activity
-  customer_state_at_time struct [note: 'Customer profile state during this activity']
-  city string
-  gender string
-  loom_plus_status boolean
-  loom_plus_tier string
-  registration_date date
-  
-  // Transaction context (null for profile_change activities)
-  transaction_id string
-  product_id string
-  product_name string
-  product_brand string
-  product_main_category string
-  product_sub_category string
-  revenue float
-  quantity integer
-  
-  // Calculated metrics
-  days_since_registration integer
-  customer_lifetime_orders_to_date integer
-  customer_lifetime_value_to_date float
-  
-  last_updated timestamp [not null]
-  
-  Note: 'Mart: Historical customer journey with profile changes and transactions'
-}
-
-Table marketing_metrics_mart {
-  date_key int [ref: > dim_date.date_key, not null]
-  channel string [not null]
-  campaign_id string [not null]
-  
-  // Traffic Metrics
-  sessions int [default: 0]
-  unique_users int [default: 0]
-  page_views int [default: 0]
-  avg_session_duration decimal(6,2)
-  bounce_rate decimal(5,4)
-  
-  // Conversion Metrics
-  conversions int [default: 0]
-  conversion_rate decimal(5,4)
-  revenue decimal(12,2) [default: 0]
-  avg_order_value decimal(8,2)
-  
-  // Cost Metrics
-  ad_spend decimal(10,2) [default: 0]
-  cost_per_click decimal(6,2)
-  cost_per_conversion decimal(8,2)
-  return_on_ad_spend decimal(6,2) [note: 'ROAS ratio']
-  
-  // Attribution Metrics
-  first_touch_conversions int [default: 0]
-  last_touch_conversions int [default: 0]
-  assisted_conversions int [default: 0]
-  attributed_revenue decimal(12,2) [default: 0]
-  
-  last_updated timestamp [not null]
-  
-  indexes {
-    (date_key, channel, campaign_id) [pk]
-  }
-  
-  Note: 'Mart: Marketing performance with multi-touch attribution'
-}
-
-Table transactions_mart {
-  transaction_product_id string [pk, note: 'Composite key from fact_transactions']
+Table fct_advertising {
+  ad_key bigint [pk, note: 'Conformed hash of (date, platform_name)']
   date_key integer [ref: > dim_date.date_key, not null]
-  user_crm_id integer [note: 'nullable for guest checkouts']
+  platform_key bigint [ref: > dim_ad_platform.platform_key]
+  impressions integer
+  clicks integer
+  cost float
+  ctr float [note: 'clicks / impressions']
+  Note: 'Fact: daily ad-platform spend and performance'
+}
+
+//============================================================================
+// MARTS LAYER — business-ready analytics (rpt_)
+//============================================================================
+
+Table rpt_transactions {
+  item_id integer [pk, note: 'Per-unit line-item grain (from fct_transactions)']
+  date_key integer [ref: > dim_date.date_key, not null]
+  user_crm_id integer [ref: > dim_users.user_crm_id, note: 'NULL for guest checkout']
   user_cookie_id string
   session_id string
-  product_id string [not null]
-  
-  // Date dimension attributes
+  product_id integer [ref: > dim_products.product_id, not null]
   transaction_date date
   transaction_year integer
   transaction_month integer
-  transaction_day_of_week integer
   transaction_quarter integer
+  transaction_day_of_week integer
   is_weekend boolean
   is_holiday boolean
-  
-  // Product dimension attributes
   product_name string
   product_brand string
   product_main_category string
   product_sub_category string
   product_gender_target string
   product_list_price float
-  
-  // User dimension attributes (null for guest checkout)
   user_city string
   user_gender string
   user_registration_date date
   user_lifetime_orders integer
   user_lifetime_value float
   user_loom_plus_status boolean
-  
-  // Transaction metrics
   coupon_flag boolean
   return_status string
   quantity integer
-  revenue float
-  cost float [note: 'calculated from product unit_cost']
+  revenue float [note: 'price * quantity']
+  cost float [note: 'unit_cost * quantity']
   gross_profit float [note: 'revenue - cost']
   refund_amount float
-  net_profit float [note: 'gross_profit - refund_amount']
-  
-  last_updated timestamp [not null]
-  
-  Note: 'Mart: Complete transaction analysis with profitability and refunds'
+  net_revenue float [note: 'revenue - refund_amount']
+  Note: 'Mart: line-item transaction analysis with profitability and refunds'
+}
+
+Table rpt_customer_activity {
+  user_crm_id integer [ref: > dim_users.user_crm_id, not null]
+  activity_type string [note: 'profile_change | transaction | session']
+  activity_date date [not null]
+  activity_timestamp timestamp [not null]
+  customer_city string
+  customer_gender string
+  loom_plus_status boolean
+  loom_plus_tier string
+  opt_in_status boolean
+  lifetime_orders integer
+  lifetime_value float
+  transaction_id integer [note: 'transaction events only']
+  session_id string
+  product_id integer [note: 'transaction events only']
+  product_revenue float
+  product_quantity integer
+  customer_state_at_time string [note: 'New | Repeat | Loyal | Premium Customer']
+  customer_version_key bigint [note: 'SCD surrogate key for the customer version']
+  change_type string
+  customer_activity_sequence integer
+  customer_tenure_days integer
+  Note: 'Mart: SCD-chronology customer journey (profile changes + transactions, PIT customer state)'
+}
+
+Table rpt_daily_channel_performance {
+  date date [not null]
+  channel string [note: 'Paid Social, Search, DSP, ... (dim_ad_platform.channel_type)']
+  platform string [note: 'Facebook, Google Ads, TikTok, ...']
+  clicks integer
+  impressions integer
+  ad_spend float
+  sessions integer
+  total_users integer
+  new_users integer
+  bounces integer
+  page_views integer
+  avg_session_duration float
+  transaction_count integer
+  total_revenue float
+  item_quantity integer
+  item_price_total float
+  Note: 'Mart: daily date x channel x platform KPI aggregation (device not in grain)'
 }
 
 //============================================================================
-// REFERENCE DATA
+// eBay competitor stand-in (seeded; retired by the eBay ETL, Plan 04)
 //============================================================================
-
-Ref: stg_transactions.user_crm_id > stg_users.user_crm_id
-Ref: stg_transactions_and_items.transaction_id > stg_transactions.transaction_id
-Ref: stg_transactions_and_items.item_id > stg_product_attributes.item_id
-Ref: stg_sessions.user_crm_id > stg_users.user_crm_id
-Ref: stg_funnel_events.user_crm_id > stg_users.user_crm_id
-Ref: stg_funnel_events.session_id > stg_sessions.session_id
-Ref: stg_funnel_events.item_id > stg_product_attributes.item_id
-
-Ref: fact_transactions.user_crm_id > dim_users.user_crm_id
-Ref: fact_transactions.date_key > dim_date.date_key
-Ref: fact_transactions.product_id > dim_products.product_id
-Ref: fact_sessions.user_crm_id > dim_users.user_crm_id
-Ref: fact_sessions.date_key > dim_date.date_key
-
-Ref: customer_activity_mart.user_crm_id > dim_users.user_crm_id
-Ref: transactions_mart.date_key > dim_date.date_key
-Ref: transactions_mart.user_crm_id > dim_users.user_crm_id
+// ebay_dim_brand, ebay_dim_category, ebay_fct_items — built from the
+// transformed_competitor_data seed; independent of the loom_sync star above.
 ```
 
-## 🔄 Key Improvements in Modern Structure
+## 🔄 Key improvements over the legacy structure
 
-### 1. **Proper Relationships and Constraints**
-- **Primary Keys**: Every table has a proper primary key
-- **Foreign Keys**: Clear relationships between related entities
-- **Referential Integrity**: Enforced relationships prevent orphaned records
-- **Data Types**: Consistent, appropriate data types (decimal for money, etc.)
+### 1. Conformed keys, no lookup joins
+Surrogate/FK keys are deterministic `FARM_FINGERPRINT` INT64 hashes, so a child model computes the
+same key its parent stores. Joins are integer-on-integer and cheap; there are no key-lookup
+round-trips. `relationships` tests enforce referential integrity across the star.
 
-### 2. **Dimensional Modeling**
-- **Star Schema**: Fact tables surrounded by dimension tables
-- **SCD Type 2**: Historical tracking of changes in customer and product dimensions
-- **Surrogate Keys**: Integer keys for better performance
-- **Date Dimension**: Comprehensive date attributes for time-based analysis
+### 2. Snowflaked ~3NF core
+Two hierarchies are broken out of the wide dimensions to remove repeating text and model the real
+grain:
+- **Geography**: `dim_country` ← `dim_region` ← `dim_geo` (city leaf), assembled via the ephemeral
+  `int_geo_locations`.
+- **Product**: `dim_brand` and `dim_main_category` ← `dim_sub_category`, with `dim_products` now
+  **keys-only** (`brand_key`, `sub_category_key`). The `rpt_` marts re-join the sub-dims for display
+  names.
 
-### 3. **Layered Architecture**
-- **Staging Layer**: Clean, standardized source data
-- **Intermediate Layer**: Dimensional models with business logic
-- **Marts Layer**: Pre-aggregated, business-ready datasets
+### 3. SCD Type 2 history
+`dim_users` (and `dim_products`) carry `valid_from` / `valid_to` / `is_current`, so facts join
+**point-in-time** to the customer/product state as of the event. `rpt_customer_activity` reconstructs
+the customer journey from that history.
 
-### 4. **Performance Optimization**
-- **Partitioning**: Tables partitioned by date for query performance
-- **Clustering**: Appropriate clustering keys for BigQuery optimization
-- **Pre-aggregation**: Marts contain pre-calculated metrics
-- **Indexing Strategy**: Strategic indexes for common query patterns
+### 4. Per-unit transaction grain (#56)
+`fct_transactions` is one row per **unit sold** with a globally-unique `item_id` (uniqueness tested
+at `severity: error`). This distinguishes duplicate products within a transaction — e.g. a partial
+return of one of two identical items — which the old `(transaction_id, product_id)` grain could not.
 
-### 5. **Data Quality and Governance**
-- **Constraints**: NOT NULL, UNIQUE, and CHECK constraints
-- **Standardization**: Consistent naming and coding conventions
-- **Documentation**: Comprehensive table and column documentation
-- **Lineage**: Clear data lineage through layered architecture
+### 5. Integer-first identifiers (#36)
+Natural keys are integer and never exposed outside the warehouse, so enumeration is out of the threat
+model; integers minimise BigQuery storage and join cost. `session_id` / `user_cookie_id` stay string.
 
-### 6. **Business Intelligence Ready**
-- **Customer 360**: Complete customer view with calculated metrics
-- **Marketing Attribution**: Multi-touch attribution analysis
-- **Product Analytics**: Category and brand performance metrics
-- **Real-time Capabilities**: Architecture supports streaming updates
+## Layer map
 
-## 📊 Performance Comparison
+| Layer | Models |
+|-------|--------|
+| **staging** (views) | `stg_users`, `stg_transactions`, `stg_transactions_and_items`, `stg_sessions`, `stg_product_attributes`, `stg_product_costs`, `stg_product_list_prices`, `stg_product_returns`, `stg_funnel_events`, `stg_adplatform_data`, `stg_adplatform_data_unpivoted` |
+| **core dims** | `dim_date`, `dim_users`, `dim_products`, `dim_brand`, `dim_main_category`, `dim_sub_category`, `dim_geo`, `dim_region`, `dim_country`, `dim_source`, `dim_medium`, `dim_devices`, `dim_ad_platform` (+ `ebay_dim_brand`, `ebay_dim_category`) |
+| **core facts** | `fct_sessions`, `fct_transactions`, `fct_advertising` (+ `ebay_fct_items`); ephemeral `int_geo_locations` |
+| **marts** | `rpt_transactions`, `rpt_customer_activity`, `rpt_daily_channel_performance` |
 
-### Query Performance Improvements
-
-**Legacy Query Example** (Poor Performance):
-```sql
--- Complex joins required for simple customer analysis
-SELECT 
-  u.user_crm_id,
-  COUNT(DISTINCT t.transaction_id) as orders,
-  SUM(t.total_amount) as revenue
-FROM users u
-LEFT JOIN transactions t ON u.user_crm_id = t.user_crm_id
-LEFT JOIN sessions s ON u.user_crm_id = s.user_crm_id
-WHERE t.transaction_date >= '2024-01-01'
-GROUP BY u.user_crm_id
--- Scan: 3 full tables, Complex JOINs, No optimization
-```
-
-**Modern Query Example** (High Performance):
-```sql
--- Simple, fast query from pre-aggregated mart
-SELECT 
-  user_crm_id,
-  total_orders,
-  total_revenue
-FROM customer_activity_mart
-WHERE last_purchase_date >= '2024-01-01'
--- Scan: 1 optimized table, No JOINs, Pre-calculated metrics
-```
-
-### Benefits Achieved
-
-| Aspect | Legacy Structure | Modern Structure | Improvement |
-|--------|------------------|------------------|-------------|
-| **Query Performance** | 30-60 seconds | <1 second | 30-60x faster |
-| **Data Quality** | Manual validation | Automated constraints | 95% fewer errors |
-| **Analytics Capability** | Complex queries required | Simple mart queries | 10x easier analysis |
-| **Historical Tracking** | No change tracking | SCD Type 2 | Complete history |
-| **Cost Efficiency** | Full table scans | Optimized queries | 60-80% cost reduction |
-| **Maintainability** | Ad-hoc structure | Documented architecture | 5x easier maintenance |
-
-The transformation from a flat, unstructured database to a modern dimensional data warehouse has enabled sophisticated analytics, improved performance, and created a foundation for advanced business intelligence capabilities.
+> For the validated `dbt build` result (PASS/WARN/ERROR counts, accepted warnings, reproduction
+> steps) see [dbt-build-summary.md](dbt-build-summary.md).

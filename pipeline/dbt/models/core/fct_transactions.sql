@@ -1,6 +1,6 @@
 /*
 ===================================================================================
-FACT: fact_transactions
+FACT: fct_transactions
 ===================================================================================
 
 PURPOSE:
@@ -8,7 +8,7 @@ PURPOSE:
     and foreign key relationships to dimension tables.
 
 GRAIN:
-    One row per transaction/product line item (transaction_id + item_id combination)
+    One row per unit sold (unique item_id). product_id is the SKU; transaction_id the order.
 
 KEY BUSINESS METRICS:
     - Item-level revenue, price, and quantity
@@ -21,7 +21,7 @@ FOREIGN KEYS:
     - date_key -> dim_date
     - user_crm_id -> dim_users  
     - product_id -> dim_products
-    - session_id -> fact_sessions
+    - session_id -> fct_sessions
 
 ===================================================================================
 */
@@ -38,8 +38,8 @@ FOREIGN KEYS:
 
 WITH transaction_items AS (
     SELECT
-        -- Primary Keys
-        CONCAT(CAST(transaction_id AS STRING), '.', CAST(product_id AS STRING)) as transaction_product_id,
+        -- Primary key: globally-unique per-unit item id
+        item_id,
         transaction_id,
         product_id,
         
@@ -75,12 +75,13 @@ transactions AS (
 
 product_returns AS (
     SELECT
+        item_id,
         transaction_id,
         product_id,
         return_status,
         return_quantity,
         CAST(REPLACE(CAST(return_date AS STRING), '-', '') AS INT64) as return_date
-        
+
     FROM {{ ref('stg_product_returns') }}
 ),
 
@@ -94,9 +95,9 @@ purchase_time AS (
 ),
 final AS (
     SELECT
-        -- Primary Key
-        DISTINCT ti.transaction_product_id,
-        
+        -- Primary Key: unique per-unit item id
+        ti.item_id,
+
         -- Foreign Keys
         ti.date_key,
         COALESCE(t.user_crm_id, NULL) as user_crm_id,  -- Natural key for user dimension
@@ -132,7 +133,7 @@ final AS (
             ELSE 'Guest'
         END as customer_type,
 
-        -- Loom+ Status (pass through from stg_users, null for empty/null values)
+        -- Loom+ Status (from dim_users at transaction time, null for empty/null values)
         CASE 
             WHEN u.loom_plus_status IS NOT NULL AND u.loom_plus_status = TRUE 
             THEN CAST(u.loom_plus_status AS STRING)
@@ -164,11 +165,14 @@ final AS (
     FROM transaction_items ti
     LEFT JOIN transactions t
         ON ti.transaction_id = t.transaction_id
-    LEFT JOIN {{ ref('stg_users') }} u
+    -- Point-in-time join to the user version valid at the transaction date (one row per line;
+    -- joining stg_users on user_crm_id alone fanned out multi-version SCD2 users — see #56).
+    LEFT JOIN {{ ref('dim_users') }} u
         ON t.user_crm_id = u.user_crm_id
+        AND ti.date >= CAST(u.valid_from AS DATE)
+        AND (u.valid_to IS NULL OR ti.date < CAST(u.valid_to AS DATE))
     LEFT JOIN product_returns pr
-        ON ti.transaction_id = pr.transaction_id
-        AND ti.product_id = pr.product_id
+        ON ti.item_id = pr.item_id
     LEFT JOIN purchase_time pt
         ON ti.product_id = pt.product_id AND t.transaction_id = pt.transaction_id
 )

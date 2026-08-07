@@ -27,7 +27,8 @@ cost trade-off, not an oversight. To enable later: rename the file to `staging.y
 - **`ci.yml`** — the test matrix (ruff lint/format, `data_generation` unit tests, `terraform
   validate/fmt`). Runs on PRs to `dev`/`staging`/`main` and pushes to `main`. It is the
   **required status check** on `main`. Additional jobs (etl tests, dbt parse, DAG integrity) are
-  present but gated `if: false` until Plans 03–04 land, then become required too.
+  present but gated `if: false`. Plan 03 (dbt build) has since landed, so the dbt-parse job is a
+  candidate to un-gate and promote to required; the etl/DAG jobs stay gated until Plan 04.
 - **`deploy-main.yml`** — on push to `main`: authenticate to GCP via Workload Identity
   Federation and `terraform apply` the prod environment.
 - **`staging.yml.disabled`** — the disabled staging equivalent (see above).
@@ -41,7 +42,11 @@ and the deploy-SA impersonation binding are created by the `github_wif` Terrafor
 
 ### Required GitHub configuration (set once)
 
-**Environment `production` variables** (Settings → Environments → production → Variables):
+The deploy workflows read these via `${{ vars.* }}`, which resolves **environment-scoped**
+variables first, then falls back to **repo-level** Actions variables. They are currently set at
+the **repo level** (Settings → Secrets and variables → Actions → Variables), so the `production`
+job inherits them; scoping them to the `production`/`staging` Environments instead is more secure
+and recommended if you add more environments.
 
 | Variable | Value |
 |----------|-------|
@@ -51,7 +56,12 @@ and the deploy-SA impersonation binding are created by the `github_wif` Terrafor
 | `GCP_REGION` | e.g. `us-central1` |
 | `BQ_LOCATION` | e.g. `US` |
 | `TF_STATE_BUCKET` | your state bucket |
-| `DAG_LOGS_BUCKET` / `DBT_ARTIFACTS_BUCKET` | your bucket names |
+| `DAG_LOGS_BUCKET` / `DBT_ARTIFACTS_BUCKET` | your bucket names (not yet consumed by the deploy) |
+
+> **CI deploys are destroy-guarded.** `deploy-main.yml` (and the disabled staging workflow) run
+> `terraform plan` and **refuse to auto-apply** any plan containing a destroy/replace — so a
+> misconfigured variable can't silently recreate (and wipe) prod datasets. A blocked deploy fails
+> the job and requires a human to inspect and apply.
 
 ## Branch protection (configured via `gh`)
 
@@ -76,18 +86,32 @@ names with an environment prefix** — `dev_`, `stg_`, and **no prefix for prod*
 version-labelled releases; here prod is distinguished by the absence of a prefix.)
 
 This migration — parametrizing the Terraform modules, retargeting the datagen, and aligning
-dbt — is **executed at the start of Plan 03** (issue **#29**), bundled with a clean data
-reload. Until then, `dev` uses the current unprefixed `loom_sync`; the automated prod deploy
-must not run against this single project until #29 lands.
+dbt — **landed at the start of Plan 03** (issue **#29**), bundled with a clean data reload.
+`dev` now builds against the prefixed `dev_loom_sync` source (dbt reads
+`DBT_SOURCE_DATASET`, default `loom_sync`); the automated prod deploy still must not run
+against this single project until the env datasets are fully isolated.
 
 ## Manual deploy (dev / staging)
 
+Terraform is configured **per environment via `terraform.tfvars`** (copied from the committed
+`terraform.tfvars.example`). **Do not** rely on `TF_VAR_*` from `.env`: those entries use
+`${GCP_PROJECT_ID}`-style refs that only expand under a shell `source .env` — an IDE/dotenv loader
+that reads `.env` *literally* passes Terraform the string `"${GCP_PROJECT_ID}"`, which forces a
+name/project change and **destroys** the env's datasets/buckets on apply (this happened once; it's
+why the tfvars flow is now mandatory).
+
 ```bash
 cd infra/terraform/environments/<env>
-cp terraform.tfvars.example terraform.tfvars   # fill in
+cp terraform.tfvars.example terraform.tfvars   # fill in project_id + state_bucket_name
 terraform init -backend-config="bucket=<TF_STATE_BUCKET>"
-terraform apply
+terraform plan                                  # ALWAYS review — a line reading "destroy" or
+                                                # "must be replaced" on a populated env is a STOP sign
+terraform apply                                 # only after the plan is what you expect
 ```
+
+> **Guardrail:** never approve an apply whose plan shows unexpected `destroy` / `must be replaced`
+> actions. Prod datasets/buckets are additionally deletion-protected (`allow_dataset_deletion=false`,
+> bucket `force_destroy=false`) so a populated prod resource cannot be dropped by a stray apply.
 
 ## Versioning & CHANGELOG (#31)
 

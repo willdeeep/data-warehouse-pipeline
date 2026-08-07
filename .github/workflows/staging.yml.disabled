@@ -65,4 +65,12 @@ jobs:
           TF_VAR_state_bucket_name: ${{ vars.TF_STATE_BUCKET }}
         run: |
           terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
-          terraform apply -auto-approve -input=false
+          terraform plan -input=false -out=tfplan
+          # Safety gate: never auto-approve a plan that DESTROYS or REPLACES a resource
+          # (a misconfigured TF_VAR forces a name/project change → destroy+recreate).
+          if terraform show -json tfplan | jq -e '[.resource_changes[].change.actions[]] | index("delete") | not' >/dev/null; then
+            terraform apply -input=false tfplan
+          else
+            echo "::error::Staging plan contains destroy/replace actions — refusing to auto-apply. Inspect the plan and apply manually."
+            exit 1
+          fi

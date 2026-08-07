@@ -19,10 +19,11 @@ module "bigquery" {
 }
 
 module "storage" {
-  source        = "../../modules/storage"
-  project_id    = var.project_id
-  location      = var.bq_location
-  bucket_prefix = "" # prod buckets are unprefixed
+  source                = "../../modules/storage"
+  project_id            = var.project_id
+  location              = var.bq_location
+  bucket_prefix         = ""    # prod buckets are unprefixed
+  allow_bucket_deletion = false # prod: a populated bucket cannot be force-destroyed
 }
 
 # Orchestration runtime is deferred to Plan 05; the stub creates nothing.

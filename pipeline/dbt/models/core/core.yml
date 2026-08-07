@@ -92,14 +92,22 @@ models:
         description: "Natural business key for product (multiple records per product for SCD)"
         tests:
           - not_null
-      - name: brand
-        description: "Product brand name (trackable for changes)"
+      - name: brand_key
+        description: "FK to dim_brand (snowflaked)."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_brand')
+                field: brand_key
+      - name: sub_category_key
+        description: "FK to dim_sub_category (main category reachable via the sub → main link)."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_sub_category')
+                field: sub_category_key
       - name: name
         description: "Product name (trackable for changes)"
-      - name: main_category
-        description: "Primary product category (trackable for changes)"
-      - name: sub_category
-        description: "Product subcategory (trackable for changes)"
       - name: gender_target
         description: "Target gender for product (trackable for changes)"
       - name: list_price
@@ -123,6 +131,45 @@ models:
       - name: dbt_created_at
         description: "dbt record creation timestamp"
 
+  - name: dim_brand
+    description: "Product brand dimension (snowflaked out of dim_products)."
+    columns:
+      - name: brand_key
+        description: "Surrogate PK (conformed hash of brand)."
+        tests:
+          - unique
+          - not_null
+      - name: brand_name
+        description: "Brand name."
+
+  - name: dim_main_category
+    description: "Top level of the product category hierarchy."
+    columns:
+      - name: main_category_key
+        description: "Surrogate PK (conformed hash of main category)."
+        tests:
+          - unique
+          - not_null
+      - name: main_category_name
+        description: "Main category name."
+
+  - name: dim_sub_category
+    description: "Sub level of the product category hierarchy; parents up to dim_main_category."
+    columns:
+      - name: sub_category_key
+        description: "Surrogate PK (conformed hash of sub category)."
+        tests:
+          - unique
+          - not_null
+      - name: sub_category_name
+        description: "Sub category name."
+      - name: main_category_key
+        description: "FK to dim_main_category."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_main_category')
+                field: main_category_key
   - name: dim_source
     description: "INTERMEDIATE MODEL: Source dimension table for marketing attribution analysis. Standardizes traffic source classifications with automated channel categorization."
     columns:
@@ -155,23 +202,56 @@ models:
         description: "Timestamp when this record was first created by dbt."
 
   - name: dim_geo
-    description: "INTERMEDIATE MODEL: Geographic dimension table for location-based analysis. Provides standardized geography hierarchy combining data from sessions and users with default US country assignment."
+    description: "City (leaf) of the geographic hierarchy; parents up to dim_region via region_key (snowflaked)."
     columns:
       - name: geo_key
-        description: "Primary surrogate key for geography dimension"
+        description: "Surrogate PK (city grain)."
         tests:
           - unique
           - not_null
       - name: city
-        description: "City name (cleaned and standardized)"
-      - name: region
-        description: "State or region"
-      - name: country
-        description: "Country code (defaults to US)"
+        description: "City name (region suffix stripped)."
+      - name: region_key
+        description: "FK to dim_region; NULL when no region parsed from the city string."
+        tests:
+          - relationships:
+              config:
+                where: "region_key is not null"
+              arguments:
+                to: ref('dim_region')
+                field: region_key
       - name: dbt_updated_at
         description: "Timestamp when this record was last updated by dbt."
       - name: dbt_created_at
         description: "Timestamp when this record was first created by dbt."
+
+  - name: dim_region
+    description: "Region level of the geographic hierarchy; parents up to dim_country."
+    columns:
+      - name: region_key
+        description: "Surrogate PK (conformed hash of region + country)."
+        tests:
+          - unique
+          - not_null
+      - name: region_name
+        description: "Region name parsed from the city string."
+      - name: country_key
+        description: "FK to dim_country."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_country')
+                field: country_key
+  - name: dim_country
+    description: "Country level of the geographic hierarchy (top). One row per country."
+    columns:
+      - name: country_key
+        description: "Surrogate PK (conformed hash of country)."
+        tests:
+          - unique
+          - not_null
+      - name: country_name
+        description: "Country name (currently constant 'US' — see thin-data caveat)."
 
   - name: dim_devices
     description: "INTERMEDIATE MODEL: Device dimension table for digital analytics and user experience analysis. Standardizes device, browser, and operating system classifications for technology stack identification."
@@ -210,7 +290,7 @@ models:
         description: "Timestamp when this record was first created by dbt."
 
   # FACT TABLES
-  - name: fact_sessions
+  - name: fct_sessions
     description: "INTERMEDIATE MODEL: Session fact table for digital analytics and user behavior analysis. Contains session-level metrics with dimensional foreign keys including page views, conversion flags, and bounce detection."
     columns:
       - name: session_id
@@ -227,51 +307,58 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('dim_date')
-              field: date_key
+              arguments:
+                to: ref('dim_date')
+                field: date_key
       - name: user_crm_id
         description: "Foreign key to user dimension"
         tests:
           - relationships:
-              to: ref('dim_users')
-              field: user_crm_id
               config:
                 severity: warn
                 where: "user_crm_id is not null"  # Only test non-null values
+              arguments:
+                to: ref('dim_users')
+                field: user_crm_id
       - name: source_key
         description: "Foreign key to source dimension"
         tests:
           - relationships:
-              to: ref('dim_source')
-              field: source_key
               config:
                 severity: warn
+              arguments:
+                to: ref('dim_source')
+                field: source_key
       - name: platform_key
         description: "Foreign key to ad platform dimension"
         tests:
           - relationships:
-              to: ref('dim_ad_platform')
-              field: platform_key
+              arguments:
+                to: ref('dim_ad_platform')
+                field: platform_key
       - name: medium_key
         description: "Foreign key to medium dimension"
         tests:
           - relationships:
-              to: ref('dim_medium')
-              field: medium_key
               config:
                 severity: warn
+              arguments:
+                to: ref('dim_medium')
+                field: medium_key
       - name: geo_key
         description: "Foreign key to geography dimension"
         tests:
           - relationships:
-              to: ref('dim_geo')
-              field: geo_key
+              arguments:
+                to: ref('dim_geo')
+                field: geo_key
       - name: device_key
         description: "Foreign key to device dimension"
         tests:
           - relationships:
-              to: ref('dim_devices')
-              field: device_key
+              arguments:
+                to: ref('dim_devices')
+                field: device_key
       - name: page_views
         description: "Number of page views in session"
       - name: add_to_cart_flag
@@ -286,48 +373,50 @@ models:
         description: "Timestamp when this record was last updated by dbt."
       - name: dbt_created_at
         description: "Timestamp when this record was first created by dbt."
-      
 
-  - name: fact_transactions
+
+  - name: fct_transactions
     description: "INTERMEDIATE MODEL: Transaction fact table for revenue analysis and business performance metrics. Contains transaction line item data with dimensional foreign keys including revenue, cost, profit calculations, and return tracking."
     columns:
-      - name: transaction_product_id
-        description: "Primary key for transaction product line item"
+      - name: item_id
+        description: "Primary key: globally-unique identifier for each unit sold"
         tests:
-          - unique:
-              config:
-                severity: warn
+          - unique
           - not_null
       - name: date_key
         description: "Foreign key to date dimension"
         tests:
           - not_null
           - relationships:
-              to: ref('dim_date')
-              field: date_key
+              arguments:
+                to: ref('dim_date')
+                field: date_key
       - name: user_crm_id
         description: "Foreign key to user dimension"
         tests:
           - relationships:
-              to: ref('dim_users')
-              field: user_crm_id
               config:
                 severity: warn
                 where: "user_crm_id IS NOT NULL"  # Add this line
+              arguments:
+                to: ref('dim_users')
+                field: user_crm_id
       - name: session_id
         description: "Foreign key to session fact"
         tests:
           - relationships:
-              to: ref('fact_sessions')
-              field: session_id
               config:
                 severity: warn
+              arguments:
+                to: ref('fct_sessions')
+                field: session_id
       - name: product_id
         description: "Foreign key to product dimension"
         tests:
           - relationships:
-              to: ref('dim_products')
-              field: product_id
+              arguments:
+                to: ref('dim_products')
+                field: product_id
       - name: transaction_id
         description: "Natural key - transaction identifier"
       - name: user_cookie_id
@@ -370,7 +459,7 @@ models:
         description: "Percentage of items returned vs originally purchased"
 
 
-  - name: fact_advertising
+  - name: fct_advertising
     description: "INTERMEDIATE MODEL: Advertising fact table for marketing performance analysis. Contains ad platform metrics with dimensional foreign keys including impressions, clicks, cost, and calculated CTR metrics."
     columns:
       - name: ad_key
@@ -383,14 +472,16 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('dim_date')
-              field: date_key
+              arguments:
+                to: ref('dim_date')
+                field: date_key
       - name: platform_key
         description: "Foreign key to ad platform dimension"
         tests:
           - relationships:
-              to: ref('dim_ad_platform')
-              field: platform_key
+              arguments:
+                to: ref('dim_ad_platform')
+                field: platform_key
       - name: impressions
         description: "Number of ad impressions"
       - name: clicks
