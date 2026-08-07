@@ -107,7 +107,89 @@ dimensions. Naming: `stg_` (staging views) → `dim_`/`fct_`/`int_` (core) → `
   `*_surrogate_key`, `country/region/brand/main_category/sub_category_key`, `platform_key`, `ad_key`.
 - The `ROW_NUMBER`-assigned dimension keys (`geo_key`, `device_key`, `medium_key`, `source_key`)
   are plain integers.
-- Types in the DBML below: `bigint` = INT64 conformed hash; `integer` = natural or row-number key.
+- Types below: `bigint` = INT64 conformed hash; `integer` = natural or row-number key.
+
+### Entity-relationship diagram (core star + snowflake)
+
+This Mermaid diagram renders on GitHub; the DBML block further down is the full column-level spec.
+Marts (`rpt_`) are denormalized reporting outputs derived from these entities — see
+[overview.md](overview.md) for the end-to-end lineage.
+
+```mermaid
+erDiagram
+    dim_country   ||--o{ dim_region       : "country_key"
+    dim_region    ||--o{ dim_geo          : "region_key"
+    dim_main_category ||--o{ dim_sub_category : "main_category_key"
+    dim_brand         ||--o{ dim_products     : "brand_key"
+    dim_sub_category  ||--o{ dim_products     : "sub_category_key"
+
+    dim_date      ||--o{ fct_transactions : "date_key"
+    dim_date      ||--o{ fct_sessions     : "date_key"
+    dim_date      ||--o{ fct_advertising  : "date_key"
+    dim_users     ||--o{ fct_transactions : "user_crm_id"
+    dim_users     ||--o{ fct_sessions     : "user_crm_id"
+    dim_products  ||--o{ fct_transactions : "product_id"
+    fct_sessions  ||--o{ fct_transactions : "session_id"
+
+    dim_source     ||--o{ fct_sessions    : "source_key"
+    dim_medium     ||--o{ fct_sessions    : "medium_key"
+    dim_devices    ||--o{ fct_sessions    : "device_key"
+    dim_geo        ||--o{ fct_sessions    : "geo_key"
+    dim_ad_platform ||--o{ fct_sessions   : "platform_key"
+    dim_ad_platform ||--o{ fct_advertising : "platform_key"
+
+    dim_users {
+        bigint user_surrogate_key PK
+        int user_crm_id "natural key (SCD2)"
+        timestamp valid_from
+        boolean is_current
+    }
+    dim_products {
+        bigint product_surrogate_key PK
+        int product_id "natural key (SCD2)"
+        bigint brand_key FK
+        bigint sub_category_key FK
+    }
+    dim_brand { bigint brand_key PK }
+    dim_main_category { bigint main_category_key PK }
+    dim_sub_category {
+        bigint sub_category_key PK
+        bigint main_category_key FK
+    }
+    dim_country { bigint country_key PK }
+    dim_region {
+        bigint region_key PK
+        bigint country_key FK
+    }
+    dim_geo {
+        int geo_key PK
+        bigint region_key FK
+    }
+    dim_date { int date_key PK }
+    dim_source { int source_key PK }
+    dim_medium { int medium_key PK }
+    dim_devices { int device_key PK }
+    dim_ad_platform { bigint platform_key PK }
+    fct_transactions {
+        int item_id PK "one row per unit sold"
+        int date_key FK
+        int product_id FK
+        int user_crm_id FK
+        string session_id FK
+    }
+    fct_sessions {
+        string session_id PK
+        int date_key FK
+        int user_crm_id FK
+    }
+    fct_advertising {
+        bigint ad_key PK
+        int date_key FK
+        bigint platform_key FK
+    }
+```
+
+### Full column-level spec (DBML)
 
 ```dbml
 // Modern data warehouse — layered architecture with conformed keys and SCD2
