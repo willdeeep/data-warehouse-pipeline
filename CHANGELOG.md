@@ -37,6 +37,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
   `rpt_daily_channel_performance` that read `staging` directly and was undocumented (#43).
 
 ### Changed
+- Standardized on integer surrogate keys: `*_key` / `user_/product_surrogate_key` / `platform_key` /
+  `ad_key` are now deterministic `FARM_FINGERPRINT` **INT64** via a new `generate_int_surrogate_key`
+  macro (was 32-char MD5 hex) — cheaper BigQuery storage/joins, conformed hashing (no lookup joins)
+  preserved. Natural keys stay integer (fragile `stg_users` `LENGTH=7` guard removed in favour of an
+  integer cast + `not_null` test); `session_id`/`user_cookie_id` stay string (#36).
 - Snowflaked the geo hierarchy into `dim_country` ← `dim_region` ← `dim_geo` (city leaf) via an
   ephemeral `int_geo_locations` helper and conformed surrogate-hash FKs; `dim_geo` now carries
   `region_key` instead of inline region/country text. `fct_sessions` is unchanged (city join).

@@ -59,18 +59,21 @@ correctly excluded them). Verified: **0** transactions dated before registration
 
 ## Data reconciliation notes
 
-The inherited warehouse **normalizes natural keys to INTEGER** (`SAFE_CAST(<id> AS INTEGER)`),
-and `stg_users` additionally filters `LENGTH(user_crm_id) = 7`. The synthetic data generator was
-aligned to these assumptions so keys resolve:
+The warehouse standardizes on **integer identifiers** (#36):
 
-| Key | Generated format |
-|-----|------------------|
-| `item_id` | numeric SKU `100000+` |
-| `transaction_id` | numeric `500000000+` |
-| `user_crm_id` | numeric, 7-digit `1000000+` |
+- **Natural keys** are integer (`SAFE_CAST(<id> AS INT64)`): `user_crm_id` (7-digit `1000000+`),
+  `transaction_id` (`500000000+`), `product_id` (SKU `100000+`), `item_id` (per-unit `900000000+`),
+  `date_key` (`YYYYMMDD`). The fragile `LENGTH(user_crm_id) = 7` guard was removed in favour of an
+  explicit integer cast + `not_null` test.
+- **Warehouse surrogate/FK keys** are deterministic signed **INT64** hashes via the
+  `generate_int_surrogate_key` macro (`FARM_FINGERPRINT(ARRAY_TO_STRING([...], '|'))`) — conformed
+  (a child computes the same key its parent stores, no lookup join) and cheaper to store/join than the
+  former 32-char MD5 hex: `user_/product_surrogate_key`, `country/region/brand/main_category/sub_category_key`,
+  `platform_key`, `ad_key`. The already-integer `ROW_NUMBER` keys (`geo/device/medium/source`) are unchanged.
+- **`session_id` / `user_cookie_id` remain STRING** — the natural fit for session/cookie identifiers.
 
-> These INTEGER casts + the hardcoded length guard are fragile (they'd drop legitimate
-> alphanumeric keys). Hardening the warehouse to string-typed natural keys is tracked as tech debt.
+> Integer keys minimise BigQuery storage + join cost; these ids are never exposed outside the warehouse,
+> so enumeration is out of the threat model.
 
 ## Reproduce
 
