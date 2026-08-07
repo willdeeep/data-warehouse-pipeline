@@ -20,6 +20,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 - Added GitHub-rendering architecture diagrams (#24): a Mermaid `erDiagram` of the core
   star + snowflake in `erd.md`, and a new `docs/architecture/overview.md` with a Mermaid system /
   data-flow diagram, the dbt layer lineage, and the canonical warehouse layer catalog (34 models).
+- Refreshed `README.md`: the `invoke` task runner is now the recommended build path in the
+  quickstart (`uv run invoke refresh`) with raw dbt kept as the explicit equivalent; added a
+  `tasks.py` row and pointer to `overview.md`; corrected the eBay ETL / orchestration roadmap to
+  v0.4.0 / v0.5.0.
 
 ### Added
 - Real SCD Type 2 history for `dim_users`: the synthetic generator now emits versioned user
