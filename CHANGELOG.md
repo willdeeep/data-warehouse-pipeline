@@ -7,6 +7,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-08-07
+
 ### Documentation
 - Refreshed the `docs/architecture/` docs to the current warehouse state ahead of the v0.2.0
   promotion: rewrote `erd.md` to the snowflaked ~3NF core (geo `country←region←geo`, product
