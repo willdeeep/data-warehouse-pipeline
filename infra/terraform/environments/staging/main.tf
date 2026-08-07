@@ -19,10 +19,11 @@ module "bigquery" {
 }
 
 module "storage" {
-  source        = "../../modules/storage"
-  project_id    = var.project_id
-  location      = var.bq_location
-  bucket_prefix = "stg-"
+  source                = "../../modules/storage"
+  project_id            = var.project_id
+  location              = var.bq_location
+  bucket_prefix         = "stg-"
+  allow_bucket_deletion = true # staging is disposable (UAT)
 }
 
 # Orchestration runtime is deferred to Plan 05; the stub creates nothing.

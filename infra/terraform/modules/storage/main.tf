@@ -5,7 +5,7 @@ resource "google_storage_bucket" "buckets" {
   project                     = var.project_id
   location                    = var.location
   uniform_bucket_level_access = true
-  force_destroy               = each.value.force_destroy
+  force_destroy               = var.allow_bucket_deletion
 
   lifecycle_rule {
     condition {
