@@ -24,6 +24,10 @@ Auth is **OAuth2 / ADC** for humans and **Workload Identity Federation** for CI 
 keys. Datasets are **environment-prefixed** (`dev_`, `stg_`, prod bare) so dev/staging/prod
 coexist in one project without collision.
 
+> Full system + data-flow diagrams, the dbt layer lineage, and the warehouse layer catalog live in
+> [`docs/architecture/overview.md`](docs/architecture/overview.md); the entity-relationship model
+> (Mermaid + column-level DBML) is in [`docs/architecture/erd.md`](docs/architecture/erd.md).
+
 ## Run it yourself
 
 **Prerequisites:** `gcloud`, `terraform` (≥1.9), `uv`, and a **GCP project you own**.
@@ -55,24 +59,31 @@ cd ..
 
 # 5 — Build the warehouse (dbt ships in dbt-core; pin its runtime to Python 3.12)
 uv tool install dbt-core --with dbt-bigquery --python 3.12
-set -a && source .env && set +a                   # GCP_PROJECT_ID, DBT_*_DATASET, BQ_LOCATION
-dbt deps  --project-dir pipeline/dbt
+uv sync                                            # root tooling, incl. the invoke task runner
+dbt deps --project-dir pipeline/dbt                # install dbt packages (dbt_utils, etc.) — one-time
+
+# Recommended — the invoke task runner auto-loads .env (DBT_PROFILES_DIR/DBT_PROJECT_DIR → pipeline/dbt),
+# so dbt resolves the project + profiles with no source/flags:
+uv run invoke refresh                              # dbt seed + build, both --full-refresh (canonical green build)
+
+# …or run dbt directly (equivalent):
+set -a && source .env && set +a                    # GCP_PROJECT_ID, DBT_*_DATASET, BQ_LOCATION
 dbt seed  --project-dir pipeline/dbt --profiles-dir pipeline/dbt
 dbt build --project-dir pipeline/dbt --profiles-dir pipeline/dbt --exclude transformed_competitor_data
 ```
 
-You now have a populated warehouse: `dbt build` finishes `ERROR=0` (the two `WARN`s are
+You now have a populated warehouse: the build finishes `ERROR=0` (the two `WARN`s are
 intentional — real-world messy eBay competitor data). Explore the lineage with
 `dbt docs generate --project-dir pipeline/dbt && dbt docs serve --project-dir pipeline/dbt`.
 
-> **Task-runner shortcut:** the repo ships an [`invoke`](https://www.pyinvoke.org/) task runner
-> (`tasks.py`). After `uv sync`, `uv run invoke build` (or `seed`, `run`, `test`, `refresh`,
-> `build-container`) auto-loads `.env` — which carries the local `DBT_PROFILES_DIR`/`DBT_PROJECT_DIR`
-> (`pipeline/dbt`) — so dbt resolves the project + profiles with no manual `source .env` or flags.
-> `uv run invoke --list` shows them all.
+> **Task runner:** the repo ships an [`invoke`](https://www.pyinvoke.org/) task runner
+> (`tasks.py`). `uv run invoke build` (models + tests), `seed`, `run`, `test`, `parse` (offline),
+> `refresh` (seed + build, both `--full-refresh`), and `build-container` each auto-load `.env` so
+> dbt needs no `source .env` or `--project-dir`/`--profiles-dir` flags. `uv run invoke --list`
+> shows them all.
 
 > The eBay competitor data is currently loaded as a dbt **seed** stand-in. The live eBay ETL
-> (Airflow) and the orchestration-runtime decision are on the roadmap (Plans 04–05).
+> (Airflow) is planned for **v0.4.0**, and the orchestration-runtime decision for **v0.5.0**.
 
 ## Repository layout
 
@@ -81,14 +92,15 @@ intentional — real-world messy eBay competitor data). Explore the lineage with
 | `infra/terraform/` | IaC — GCP data platform (datasets, IAM, GCS, WIF, remote state). Not containerised. |
 | `data_generation/` | Standalone Faker generator (`loom-datagen`). Run **once**, post-Terraform. **Not** part of the pipeline. |
 | `pipeline/dbt/` | The dbt warehouse (staging → core → marts) + seeds + OAuth profiles. |
-| `pipeline/dags/`, `pipeline/etl/` | Airflow DAGs + eBay ETL (in progress — Plan 04). |
-| `docs/` | Architecture, ERD, build summary, release model. |
+| `pipeline/dags/`, `pipeline/etl/` | Airflow DAGs + eBay ETL (planned — **v0.4.0**). |
+| `tasks.py` | `invoke` task runner — `build`/`seed`/`run`/`test`/`parse`/`refresh`/`build-container` (auto-loads `.env`). |
+| `docs/` | System overview + diagrams, ERD, dbt build summary, business-metrics use-cases, release model. |
 | `.github/workflows/` | CI matrix + WIF-gated production deploy. |
 
 ## Tech stack
 
 Terraform · BigQuery · Workload Identity Federation · Python 3.13/3.14 + `uv` · Faker ·
-dbt (BigQuery, Python 3.12) · Airflow · pytest · ruff · pre-commit · GitHub Actions.
+dbt (BigQuery, Python 3.12) · `invoke` · Airflow · pytest · ruff · pre-commit · GitHub Actions.
 
 ## Development
 
