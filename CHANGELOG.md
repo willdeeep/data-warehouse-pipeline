@@ -7,6 +7,27 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ## [Unreleased]
 
+### Fixed
+- **Terraform config no longer depends on `.env` shell expansion.** The `.env`/`.env.example`
+  `TF_VAR_*=${GCP_PROJECT_ID}` self-references were removed: under a literal (non-shell) dotenv
+  load they passed Terraform the string `"${GCP_PROJECT_ID}"`, forcing a project/name change that
+  destroyed the `stg_` datasets + buckets on apply. Terraform is now configured per environment via
+  a committed `terraform.tfvars.example` → local `terraform.tfvars` (added for `dev`/`staging`/`prod`).
+
+### Security
+- **Deletion guards for prod data.** New `allow_bucket_deletion` toggle on the storage module
+  (mirrors `allow_dataset_deletion`): `dev`/`staging` set it `true` (disposable), `prod` sets it
+  `false` so a populated prod bucket cannot be `force_destroy`ed. Prod datasets remain
+  `allow_dataset_deletion=false`.
+- **CI deploys are destroy-guarded.** `deploy-main.yml` (and the disabled staging workflow) now run
+  `terraform plan` and **refuse to auto-apply** any plan containing a destroy/replace action,
+  failing the job for human review instead of silently recreating (and wiping) resources.
+
+### Documentation
+- `RELEASE.md`: mandatory `terraform.tfvars` flow, a "review the plan / never approve an unexpected
+  destroy" guardrail on manual deploys, the CI destroy-guard, and corrected the GitHub deploy
+  variables note (they are repo-level Actions variables, inherited by the `production` job).
+
 ## [0.2.0] — 2026-08-07
 
 ### Documentation

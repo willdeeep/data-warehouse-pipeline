@@ -1,0 +1,11 @@
+# Copy to terraform.tfvars (gitignored) and fill in your values:
+#     cp terraform.tfvars.example terraform.tfvars
+# This is the ONLY supported way to configure Terraform. Do NOT rely on TF_VAR_* from .env —
+# a literal (non-shell) .env load passes the string "${GCP_PROJECT_ID}" and can destroy resources.
+
+project_id        = "your-gcp-project-id"
+state_bucket_name = "your-gcp-project-id-tfstate" # globally-unique GCS bucket for Terraform state
+
+# Optional (defaults shown):
+# region      = "us-central1"
+# bq_location = "US"
