@@ -19,7 +19,8 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['profile_change', 'transaction', 'session']
+              arguments:
+                values: ['profile_change', 'transaction', 'session']
       - name: activity_date
         description: "Date when the activity occurred"
         tests:
@@ -65,7 +66,8 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['New Customer', 'Repeat Customer', 'Loyal Customer', 'Premium Customer']
+              arguments:
+                values: ['New Customer', 'Repeat Customer', 'Loyal Customer', 'Premium Customer']
       - name: customer_version_key
         description: "SCD surrogate key linking to specific customer version"
         tests:
