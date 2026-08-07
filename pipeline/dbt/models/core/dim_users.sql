@@ -123,7 +123,7 @@ versioned AS (
 
 final AS (
     SELECT
-        {{ dbt_utils.generate_surrogate_key(['user_crm_id', 'calculated_valid_from']) }} AS user_surrogate_key,
+        {{ generate_int_surrogate_key(['user_crm_id', 'calculated_valid_from']) }} AS user_surrogate_key,
         user_crm_id,
         city,
         gender,

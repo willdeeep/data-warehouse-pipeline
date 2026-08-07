@@ -2,7 +2,7 @@
 
 -- Country level of the geographic hierarchy (snowflaked out of dim_geo).
 SELECT
-    {{ dbt_utils.generate_surrogate_key(['country']) }} AS country_key,
+    {{ generate_int_surrogate_key(['country']) }} AS country_key,
     country AS country_name,
     CURRENT_TIMESTAMP() AS dbt_created_at
 FROM (

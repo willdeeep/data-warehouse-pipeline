@@ -41,9 +41,7 @@ WITH platform_data AS (
 platform_dimension AS (
     SELECT
         -- Primary key
-        CONCAT('PLATFORM_', 
-            TO_HEX(MD5(COALESCE(platform_name, 'unknown')))
-        ) AS platform_key,
+        {{ generate_int_surrogate_key(['platform_name']) }} AS platform_key,
         
         platform_name,
         

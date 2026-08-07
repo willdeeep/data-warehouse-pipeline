@@ -28,7 +28,7 @@ SELECT
     ROW_NUMBER() OVER (ORDER BY country, region, city) AS geo_key,
     city,
     CASE
-        WHEN region IS NOT NULL THEN {{ dbt_utils.generate_surrogate_key(['region', 'country']) }}
+        WHEN region IS NOT NULL THEN {{ generate_int_surrogate_key(['region', 'country']) }}
         ELSE NULL
     END AS region_key,
     CURRENT_TIMESTAMP() AS dbt_updated_at,

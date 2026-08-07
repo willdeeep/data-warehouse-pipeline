@@ -2,9 +2,9 @@
 
 -- Sub level of the product category hierarchy; parents up to dim_main_category.
 SELECT
-    {{ dbt_utils.generate_surrogate_key(['item_sub_category']) }} AS sub_category_key,
+    {{ generate_int_surrogate_key(['item_sub_category']) }} AS sub_category_key,
     item_sub_category AS sub_category_name,
-    {{ dbt_utils.generate_surrogate_key(['item_main_category']) }} AS main_category_key,
+    {{ generate_int_surrogate_key(['item_main_category']) }} AS main_category_key,
     CURRENT_TIMESTAMP() AS dbt_created_at
 FROM (
     SELECT DISTINCT item_sub_category, item_main_category
