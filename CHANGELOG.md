@@ -7,6 +7,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ## [Unreleased]
 
+### Documentation
+- Refreshed the `docs/architecture/` docs to the current warehouse state ahead of the v0.2.0
+  promotion: rewrote `erd.md` to the snowflaked ~3NF core (geo `country←region←geo`, product
+  `brand`/`main_category←sub_category`, keys-only `dim_products`), integer/conformed keys (#36),
+  per-unit `item_id` transaction grain (#56), and the real `rpt_` marts; rebuilt
+  `business-metrics.md` so every query runs against the shipped marts/facts and reframed the
+  production-scale figures as an explicitly illustrative business case (the warehouse is a
+  ~500-user Faker seed). Fixed `dbt-build-summary.md` (intro now lists Plans 10/13/15 + #55/#56,
+  resolved the 54-vs-880 transaction-row contradiction, staging count 10→11) and `RELEASE.md`
+  (the #29 dataset-prefix migration and Plan 03 have landed — corrected the future-tense notes).
+
 ### Added
 - Real SCD Type 2 history for `dim_users`: the synthetic generator now emits versioned user
   profile history (a `valid_from` per version; ~35% of users change over time, oldest version

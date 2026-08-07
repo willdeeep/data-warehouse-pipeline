@@ -2,7 +2,10 @@
 
 Records the green end-to-end `dbt build` of the Loom warehouse against Faker-seeded
 `dev_loom_sync` data. Baseline established in Plan 03 (issues #11–13); refreshed after
-Plan 09 (layer/naming restructure + marts cleanup) and Plan 13 (real SCD2 history for `dim_users`).
+Plan 09 (layer/naming restructure + marts cleanup), Plan 10 (snowflaked geo + product
+hierarchies, #44/#45), Plan 13 (real SCD2 history for `dim_users`), the datagen/grain fixes
+#55 (activity bounded to signup) and #56 (per-unit `item_id` grain), and Plan 15 (integer
+surrogate keys + generic-test `arguments:` migration, #36).
 
 ## Result
 
@@ -10,7 +13,7 @@ Plan 09 (layer/naming restructure + marts cleanup) and Plan 13 (real SCD2 histor
 Done. PASS=205 WARN=2 ERROR=0 SKIP=0 NO-OP=0 TOTAL=207
 ```
 
-- **33 models** (10 staging views + 23 core/mart tables), **1 seed**, **11 sources**.
+- **34 models** (11 staging views + 23 core/mart tables), **1 seed**, **11 sources**.
 - **0 errors, 0 skips.** Both remaining warnings are intentional (below).
 
 > Plan 10 snowflaked the core hierarchies (~3NF): geo into `dim_country` ← `dim_region` ← `dim_geo`
@@ -22,8 +25,9 @@ Done. PASS=205 WARN=2 ERROR=0 SKIP=0 NO-OP=0 TOTAL=207
 > Plan 13 gave `dim_users` genuine SCD Type 2 history: the generator now emits versioned user
 > profiles (`valid_from` per version), so `dim_users` carries **749 rows across 500 users** (249
 > historical, exactly one `is_current` per user). `rpt_customer_activity` now populates both
-> `profile_change` (249) and `transaction` (54) rows — its guard test passes at `severity: error`,
-> and the point-in-time join resolves every kept transaction (`pit_violations = 0`).
+> `profile_change` and `transaction` rows — its guard test passes at `severity: error`, and the
+> point-in-time join resolves every kept transaction (`pit_violations = 0`). (The transaction-row
+> count rose from 54 to **880** once #55 bounded activity to on/after signup — see below.)
 
 ## Layers
 
