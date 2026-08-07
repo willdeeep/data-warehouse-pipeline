@@ -55,9 +55,10 @@ module "github_wif" {
 }
 
 module "storage" {
-  source        = "../../modules/storage"
-  project_id    = var.project_id
-  location      = var.bq_location
-  bucket_prefix = "dev-"
-  depends_on    = [module.project]
+  source                = "../../modules/storage"
+  project_id            = var.project_id
+  location              = var.bq_location
+  bucket_prefix         = "dev-"
+  allow_bucket_deletion = true # dev is disposable
+  depends_on            = [module.project]
 }
