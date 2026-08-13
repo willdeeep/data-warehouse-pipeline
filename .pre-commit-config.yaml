@@ -17,6 +17,15 @@ repos:
   # SQL linting (sqlfluff) is added in Plan 03, once the dbt project compiles —
   # its dbt templater needs a working profile + installed deps to lint models.
 
+  - repo: local
+    hooks:
+      - id: lint-imports
+        name: import-linter (datagen layers)
+        entry: bash -c 'cd data_generation && uv run lint-imports'
+        language: system
+        files: ^data_generation/src/
+        pass_filenames: false
+
   - repo: https://github.com/antonbabenko/pre-commit-terraform
     rev: v1.108.1
     hooks:
