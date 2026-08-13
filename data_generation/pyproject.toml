@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "pytest-cov>=5"]
+dev = ["pytest>=8", "pytest-cov>=5", "import-linter>=2.0", "pytest-archon>=0.0.7", "pandera>=0.20"]
 
 [project.scripts]
 loom-datagen = "loom_datagen.application.cli:app"
@@ -38,3 +38,18 @@ packages = ["src/loom_datagen"]
 markers = ["integration: requires BigQuery + ADC"]
 addopts = "-m 'not integration'"
 testpaths = ["tests"]
+
+[tool.importlinter]
+root_package = "loom_datagen"
+exclude_type_checking_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Layered architecture (domain stays pure)"
+type = "layers"
+layers = [
+    "application",
+    "validation",
+    "infrastructure",
+    "domain",
+]
+containers = ["loom_datagen"]
