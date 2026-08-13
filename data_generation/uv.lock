@@ -573,6 +573,7 @@ dependencies = [
     { name = "numpy" },
     { name = "pandas" },
     { name = "pandas-gbq" },
+    { name = "pandera" },
     { name = "pyarrow" },
     { name = "pydantic-settings" },
     { name = "pyyaml" },
@@ -582,7 +583,6 @@ dependencies = [
 [package.optional-dependencies]
 dev = [
     { name = "import-linter" },
-    { name = "pandera" },
     { name = "pytest" },
     { name = "pytest-archon" },
     { name = "pytest-cov" },
@@ -596,7 +596,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.0" },
     { name = "pandas", specifier = ">=2.2" },
     { name = "pandas-gbq", specifier = ">=0.26.1" },
-    { name = "pandera", marker = "extra == 'dev'", specifier = ">=0.20" },
+    { name = "pandera", specifier = ">=0.20" },
     { name = "pyarrow", specifier = ">=17" },
     { name = "pydantic-settings", specifier = ">=2.5" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
