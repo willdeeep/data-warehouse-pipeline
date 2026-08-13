@@ -7,6 +7,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ## [Unreleased]
 
+### Added
+- **datagen column descriptions (#25):** every `loom_datagen.schema` `SchemaField` now carries a
+  `description` (mirroring `source.yml`), so the loaded `loom_sync` tables are self-documenting in the
+  BigQuery console and `INFORMATION_SCHEMA`. `_f`'s `desc` argument is required — a column can't be
+  added without one — and a new `test_schema.py` guards it. dbt models were already covered by
+  `persist_docs` (`relation`/`columns`), so descriptions now flow end-to-end from source to marts.
+
+### Changed
+- **datagen deps (#26):** added `pandas-gbq>=0.26.1` so `loom-datagen generate` no longer prints the
+  `google-cloud-bigquery` FutureWarning on DataFrame loads.
+
+### Documentation
+- **datagen README (#27):** noted the benign `VIRTUAL_ENV` mismatch warning when the repo-root `.venv`
+  is active (data_generation is a standalone uv project) and the `deactivate` / `--active` fix.
+
 ## [0.2.2] — 2026-08-07
 
 ### Fixed
