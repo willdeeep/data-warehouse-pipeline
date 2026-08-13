@@ -13,6 +13,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
   BigQuery console and `INFORMATION_SCHEMA`. `_f`'s `desc` argument is required — a column can't be
   added without one — and a new `test_schema.py` guards it. dbt models were already covered by
   `persist_docs` (`relation`/`columns`), so descriptions now flow end-to-end from source to marts.
+- Architectural fitness for `data_generation/` (context-gap W1, #46): restructured into
+  Clean-Architecture layers (`domain`/`infrastructure`/`validation`/`application`), enforced by an
+  import-linter `layers` contract + pytest-archon domain-isolation tests, wired into CI and the
+  pre-commit gate.
 
 ### Changed
 - **datagen deps (#26):** added `pandas-gbq>=0.26.1` so `loom-datagen generate` no longer prints the

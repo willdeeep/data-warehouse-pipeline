@@ -9,10 +9,10 @@ pytestmark = pytest.mark.integration
 
 @pytest.mark.skipif(not os.getenv("LOOM_PROJECT_ID"), reason="needs real project + ADC")
 def test_load_and_validate_roundtrip():
-    from loom_datagen.build import build_all
-    from loom_datagen.config import DatagenConfig
-    from loom_datagen.loader import load_frames
-    from loom_datagen.validate import validate_bigquery
+    from loom_datagen.application.build import build_all
+    from loom_datagen.infrastructure.config import DatagenConfig
+    from loom_datagen.infrastructure.loader import load_frames
+    from loom_datagen.validation.validate import validate_bigquery
 
     cfg = DatagenConfig(
         n_products=20,

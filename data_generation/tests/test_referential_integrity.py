@@ -1,4 +1,4 @@
-from loom_datagen.schema import SCHEMAS
+from loom_datagen.infrastructure.schema import SCHEMAS
 
 EXPECTED = {
     "productattributes",
@@ -48,7 +48,7 @@ def test_cross_table_foreign_keys(frames):
 
 
 def test_reproducible_under_seed(cfg):
-    from loom_datagen.build import build_all
+    from loom_datagen.application.build import build_all
 
     a = build_all(cfg)
     b = build_all(cfg)

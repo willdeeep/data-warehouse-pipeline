@@ -29,6 +29,7 @@ jobs:
           fetch-tags: true
       - uses: astral-sh/setup-uv@v5
       - run: cd data_generation && uv sync --extra dev && uv run pytest -q
+      - run: cd data_generation && uv run lint-imports
 
   terraform:
     runs-on: ubuntu-latest

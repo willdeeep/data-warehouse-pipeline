@@ -7,13 +7,13 @@ from __future__ import annotations
 
 import pandas as pd
 
-from .adspend import build_adspend
-from .catalog import build_catalog
-from .events import build_funnelevents, build_returns
-from .rng import make_faker, make_rng
-from .sessions import build_sessions
-from .transactions import build_transactions
-from .users import build_users
+from loom_datagen.domain.adspend import build_adspend
+from loom_datagen.domain.catalog import build_catalog
+from loom_datagen.domain.events import build_funnelevents, build_returns
+from loom_datagen.domain.sessions import build_sessions
+from loom_datagen.domain.transactions import build_transactions
+from loom_datagen.domain.users import build_users
+from loom_datagen.infrastructure.rng import make_faker, make_rng
 
 
 def build_all(cfg) -> dict[str, pd.DataFrame]:

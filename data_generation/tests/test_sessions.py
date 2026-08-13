@@ -1,5 +1,5 @@
 import pandas as pd
-from loom_datagen.sessions import TRAFFIC_MEDIUMS
+from loom_datagen.domain.sessions import TRAFFIC_MEDIUMS
 
 
 def test_sessions(frames):
