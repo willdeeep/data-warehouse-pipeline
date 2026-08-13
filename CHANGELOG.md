@@ -17,6 +17,25 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 ### Changed
 - **datagen deps (#26):** added `pandas-gbq>=0.26.1` so `loom-datagen generate` no longer prints the
   `google-cloud-bigquery` FutureWarning on DataFrame loads.
+- **Root `pyproject.toml` version is now tag-derived** (was a stale static `0.1.0`): dropped the
+  hard-coded version for `dynamic = ["version"]` via `uv-dynamic-versioning` (hatchling,
+  `bypass-selection` metadata-only root), matching `data_generation` and the project's tag-as-source-of-truth
+  standard (#31). `uv build` now resolves the current tag (e.g. `0.2.2` on the release commit); no more
+  version-file drift.
+- **Dev toolchain declared in `pyproject.toml`:** added `ruff==0.14.2` (pinned to match
+  `.pre-commit-config.yaml` + CI) and `pre-commit>=3.5.0` to the root dev dependency group, so
+  `uv sync` reproduces the full local toolchain instead of relying on `uvx`/global installs.
+- **pre-commit is now live and functional:** installed the git hook; fixed the `pre-commit-terraform`
+  rev (`v1.100.2` → `v1.108.1` — the pinned tag never existed, so the hooks crashed on init); scoped
+  the ruff hooks to skip legacy `pipeline/dags/` + root `tests/` (E501/F401 debt) until the Plan 04
+  rewrite (tracked by #70/#71/#72); and applied a one-time repo-wide trailing-whitespace / final-newline
+  hygiene pass. Gitignored hook-generated module-level `.terraform.lock.hcl` files.
+
+### Removed
+- **Deleted the single-use `scripts/` directory** (12 files) per the no-loose-scripts rule (tests
+  belong in the suite, build-out in Terraform IaC). Superseded/one-off scripts removed outright;
+  useful functionality preserved as roadmap issues: #71 (DAG-integrity pytest), #72
+  (requirements/container drift test), #73 (BigQuery schema-vs-`source.yml` drift test).
 
 ### Documentation
 - **datagen README (#27):** noted the benign `VIRTUAL_ENV` mismatch warning when the repo-root `.venv`
