@@ -10,6 +10,14 @@ from __future__ import annotations
 import pandas as pd
 import pandera.pandas as pa
 
+# dtype-mapping notes (do not "fix" without re-checking the real generated frames):
+# - BQ DATE columns are declared "datetime64[ns]" (same type as the one real DATETIME,
+#   funnelevents.event_time) because the generators emit object-dtype columns of python
+#   `date` objects (e.g. `.date` accessors); coerce=True upcasts these to datetime64[ns].
+# - Several BQ INTEGER/FLOAT columns are nullable=True to mirror BQ NULLABLE mode, even
+#   though a raw numpy int64/float64 array can't natively hold nulls — coerce=True only
+#   needs to succeed for the populated case the generators actually produce.
+
 _GENDER_VALUES = ["M", "F", "Non-binary", "Unknown"]
 _DEVICE_CATEGORY_VALUES = ["desktop", "mobile", "tablet", "unknown"]
 _RETURN_STATUS_VALUES = ["Refund", "Exchange"]
@@ -149,8 +157,13 @@ CONTRACTS: dict[str, pa.DataFrameSchema] = {
 
 
 def validate_frames(frames: dict[str, pd.DataFrame]) -> None:
-    """Validate each generated frame against its contract, collecting all violations (lazy)."""
+    """Validate each generated frame against its contract, collecting all violations (lazy).
+
+    Raises:
+        pandera.errors.SchemaErrors: If any frame violates its contract. Validation is lazy,
+            so the exception collects every violation across the frame, not just the first.
+    """
     for table, df in frames.items():
         schema = CONTRACTS.get(table)
         if schema is not None:
-            schema.validate(df, lazy=True)  # raises pa.errors.SchemaErrors with ALL failures
+            schema.validate(df, lazy=True)
