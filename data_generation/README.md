@@ -14,6 +14,12 @@ BigQuery with referentially-consistent fake data matching
 - `gcloud auth application-default login` (ADC — no keyfiles).
 - Python 3.13 + `uv`.
 
+> **Note — run this from its own environment.** `data_generation/` is a **standalone** uv project with
+> its own `.venv`, separate from the repo-root `.venv`. If the root `.venv` is active you'll see a
+> benign warning like `VIRTUAL_ENV=/…/.venv does not match the project environment path .venv and will
+> be ignored` — uv still uses the correct `data_generation/.venv`. To silence it, `deactivate` the root
+> venv first (or pass `--active` to target the active one). `uv run …` always resolves this project's env.
+
 ## Usage
 
 ```bash
