@@ -1,7 +1,7 @@
 {% macro compare_null_values(source_name, source_table, staging_ref, column_name, additional_filters='') %}
 
   {% set source_query %}
-    SELECT 
+    SELECT
       '{{ source_name }}.{{ source_table }}' as table_name,
       '{{ column_name }}' as column_name,
       COUNT(*) as total_records,
@@ -16,7 +16,7 @@
   {% endset %}
 
   {% set staging_query %}
-    SELECT 
+    SELECT
       '{{ staging_ref }}' as table_name,
       '{{ column_name }}' as column_name,
       COUNT(*) as total_records,
@@ -33,10 +33,10 @@
   {% if execute %}
     {% set source_results = run_query(source_query) %}
     {% set staging_results = run_query(staging_query) %}
-    
+
     {{ log("=== NULL VALUE COMPARISON: " ~ column_name ~ " ===", info=True) }}
     {{ log("", info=True) }}
-    
+
     {% for row in source_results %}
       {{ log("SOURCE (" ~ row[0] ~ "):", info=True) }}
       {{ log("  Total Records: " ~ "{:,}".format(row[2]) if row[2] else "0", info=True) }}
@@ -46,7 +46,7 @@
       {{ log("  Unique Values: " ~ "{:,}".format(row[6]) if row[6] else "0", info=True) }}
       {{ log("", info=True) }}
     {% endfor %}
-    
+
     {% for row in staging_results %}
       {{ log("STAGING (" ~ row[0] ~ "):", info=True) }}
       {{ log("  Total Records: " ~ "{:,}".format(row[2]) if row[2] else "0", info=True) }}
@@ -56,12 +56,12 @@
       {{ log("  Unique Values: " ~ "{:,}".format(row[6]) if row[6] else "0", info=True) }}
       {{ log("", info=True) }}
     {% endfor %}
-    
+
     {% if source_results and staging_results %}
       {% set source_nulls = source_results[0][4] %}
       {% set staging_nulls = staging_results[0][4] %}
       {% set null_diff = staging_nulls - source_nulls %}
-      
+
       {{ log("COMPARISON:", info=True) }}
       {{ log("  Null Difference: " ~ "{:,}".format(null_diff) if null_diff else "0", info=True) }}
       {% if null_diff > 0 %}
@@ -72,7 +72,7 @@
         {{ log("  ✅ NULL COUNTS MATCH", info=True) }}
       {% endif %}
     {% endif %}
-    
+
     {{ log("=== COMPARISON COMPLETE ===", info=True) }}
   {% endif %}
 

@@ -21,9 +21,9 @@ first DAG tutorial: https://www.astronomer.io/docs/learn/get-started-with-airflo
 images/2010/02/space_station_over_earth/10293696-3-eng-GB/Space_Station_over_Earth_card_full.jpg)
 """
 
+import requests
 from airflow.decorators import dag, task
 from pendulum import datetime
-import requests
 
 
 @dag(
@@ -47,6 +47,7 @@ def example_astronauts():
     The DAG fetches current astronaut data from a public API and processes
     it to demonstrate common data pipeline patterns.
     """
+
     # Define tasks
     @task(
         # Define a dataset outlet for the task. This can be used to schedule
@@ -61,9 +62,7 @@ def example_astronauts():
         of Astronauts to be used in the next task.
         """
         try:
-            r = requests.get(
-                "http://api.open-notify.org/astros.json",
-                timeout=30)
+            r = requests.get("http://api.open-notify.org/astros.json", timeout=30)
             r.raise_for_status()
             number_of_people_in_space = r.json()["number"]
             list_of_people_in_space = r.json()["people"]
@@ -85,9 +84,7 @@ def example_astronauts():
                 {"craft": "Tiangong", "name": "Ye Guangfu"},
             ]
 
-        context["ti"].xcom_push(
-            key="number_of_people_in_space", value=number_of_people_in_space
-        )
+        context["ti"].xcom_push(key="number_of_people_in_space", value=number_of_people_in_space)
         return list_of_people_in_space
 
     @task

@@ -1,7 +1,7 @@
 /*
 ===================================================================================
 MODEL: dim_products
-=========================    SELECT 
+=========================    SELECT
         s.*,
         {{ dbt_utils.generate_surrogate_key(['s.product_id', 's.dbt_valid_from']) }} AS product_surrogate_key,=======================================================
 
@@ -49,11 +49,11 @@ WITH product_base AS (
         item_main_category AS main_category,
         item_sub_category AS sub_category,
         item_gender AS gender_target,
-        
+
         -- dbt metadata from attributes
         dbt_updated_at AS attributes_updated_at,
         dbt_valid_from AS attributes_valid_from
-        
+
     FROM {{ ref('stg_product_attributes') }}
     WHERE item_id IS NOT NULL
 ),
@@ -86,37 +86,37 @@ products_combined AS (
         pb.main_category,
         pb.sub_category,
         pb.gender_target,
-        
+
         -- Pricing information
         COALESCE(pp.list_price, 0.0) AS list_price,
         COALESCE(pc.unit_cost, 0.0) AS unit_cost,
-        
+
         -- Calculated profit margin
-        CASE 
-            WHEN COALESCE(pp.list_price, 0) > 0 
+        CASE
+            WHEN COALESCE(pp.list_price, 0) > 0
             THEN SAFE_DIVIDE(
-                (COALESCE(pp.list_price, 0) - COALESCE(pc.unit_cost, 0)), 
+                (COALESCE(pp.list_price, 0) - COALESCE(pc.unit_cost, 0)),
                 COALESCE(pp.list_price, 0)
             )
-            ELSE 0.0 
+            ELSE 0.0
         END AS profit_margin,
-        
+
         -- Combined metadata (use latest update across all sources)
         GREATEST(
             pb.attributes_updated_at,
             COALESCE(pp.pricing_updated_at, pb.attributes_updated_at),
             COALESCE(pc.cost_updated_at, pb.attributes_updated_at)
         ) AS dbt_updated_at,
-        
+
         GREATEST(
             pb.attributes_valid_from,
             COALESCE(pp.pricing_valid_from, pb.attributes_valid_from),
             COALESCE(pc.cost_valid_from, pb.attributes_valid_from)
         ) AS dbt_valid_from,
-        
+
         -- SCD Type 2 fields
         TRUE AS is_current  -- Source data is always current
-        
+
     FROM product_base pb
     LEFT JOIN product_pricing pp ON pb.product_id = pp.product_id
     LEFT JOIN product_costs pc ON pb.product_id = pc.product_id
@@ -124,7 +124,7 @@ products_combined AS (
 
 -- Simple table materialization - creates current snapshot of all products
 final AS (
-    SELECT 
+    SELECT
         {{ generate_int_surrogate_key(['product_id', 'dbt_valid_from']) }} AS product_surrogate_key,
         product_id,
         -- Keys-only: brand/category text lives in the snowflaked sub-dims (conformed hashes).
@@ -135,16 +135,16 @@ final AS (
         list_price,
         unit_cost,
         profit_margin,
-        
+
         -- SCD Type 2 fields
         CURRENT_TIMESTAMP() AS valid_from,
         CAST(NULL AS TIMESTAMP) AS valid_to,
         TRUE AS is_current,
-        
+
         -- Metadata
         dbt_updated_at,
         CURRENT_TIMESTAMP() AS dbt_created_at
-        
+
     FROM products_combined
 )
 

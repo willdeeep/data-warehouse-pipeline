@@ -1,14 +1,15 @@
 """Extracts raw data from eBay API using search terms from BigQuery and saves to a CSV file."""
-from pathlib import Path
+
 import base64
 import logging
 import os
 import time
+from pathlib import Path
 
-from dotenv import load_dotenv
-from google.cloud import bigquery
 import pandas as pd
 import requests
+from dotenv import load_dotenv
+from google.cloud import bigquery
 
 logging.basicConfig(level=logging.INFO)
 
@@ -20,8 +21,8 @@ CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 
 # Debug: Check if credentials are loaded (without exposing full values)
-logging.info("CLIENT_ID loaded: %s", 'Yes' if CLIENT_ID else 'No')
-logging.info("CLIENT_SECRET loaded: %s", 'Yes' if CLIENT_SECRET else 'No')
+logging.info("CLIENT_ID loaded: %s", "Yes" if CLIENT_ID else "No")
+logging.info("CLIENT_SECRET loaded: %s", "Yes" if CLIENT_SECRET else "No")
 if CLIENT_ID:
     logging.info("CLIENT_ID length: %d characters", len(CLIENT_ID))
 if CLIENT_SECRET:
@@ -94,8 +95,7 @@ def fetch_search_terms():
         all_search_terms.extend([mens_term, womens_term, unisex_term])
         combinations_count += 1
 
-    print(f"Generated search terms from {combinations_count} brand "
-          f"category combinations: ")
+    print(f"Generated search terms from {combinations_count} brand category combinations: ")
     print(f"  - Mens terms: {combinations_count}")
     print(f"  - Womens terms: {combinations_count}")
     print(f"  - Unisex terms: {combinations_count}")
@@ -121,16 +121,14 @@ def get_access_token(client_id, client_secret):
 
     headers = {
         "Authorization": f"Basic {encoded_auth}",
-        "Content-Type": "application/x-www-form-urlencoded"
+        "Content-Type": "application/x-www-form-urlencoded",
     }
 
-    data = {
-        "grant_type": "client_credentials",
-        "scope": "https://api.ebay.com/oauth/api_scope"
-    }
+    data = {"grant_type": "client_credentials", "scope": "https://api.ebay.com/oauth/api_scope"}
 
-    response = requests.post("https://api.ebay.com/identity/v1/oauth2/token",
-                             headers=headers, data=data, timeout=10)
+    response = requests.post(
+        "https://api.ebay.com/identity/v1/oauth2/token", headers=headers, data=data, timeout=10
+    )
     response.raise_for_status()
     return response.json()["access_token"]
 
@@ -152,7 +150,7 @@ def search_ebay_items(query, token, limit, offset_param):
     headers = {
         "Authorization": f"Bearer {token}",
         "X-EBAY-C-ENDUSERCTX": "contextualLocation=country=GB",
-        "X-EBAY-C-MARKETPLACE-ID": "EBAY_GB"  # <-- for GB marketplace
+        "X-EBAY-C-MARKETPLACE-ID": "EBAY_GB",  # <-- for GB marketplace
     }
 
     params = {
@@ -162,14 +160,14 @@ def search_ebay_items(query, token, limit, offset_param):
         "category_ids": "11450",  # Clothing
         "buyerCountry": "GB",
         "filter": "priceCurrency:GBP",
-        "item_location_country": "GB"
+        "item_location_country": "GB",
     }
 
     response = requests.get(
         "https://api.ebay.com/buy/browse/v1/item_summary/search",
         headers=headers,
         params=params,
-        timeout=10  # Set a timeout for the request
+        timeout=10,  # Set a timeout for the request
     )
     response.raise_for_status()
     return response.json().get("itemSummaries", [])
@@ -185,19 +183,21 @@ def save_to_csv(items, filename):
     """
     rows = []
     for item in items:
-        rows.append({
-            "search_term": item.get("search_term"),
-            "title": item.get("title", ""),
-            "price": item.get("price", {}).get("value"),
-            "currency": item.get("price", {}).get("currency"),
-            "category": item.get("categoryPath"),
-            "brand": item.get("brand"),
-            "condition": item.get("condition"),
-            "url": item.get("itemWebUrl")
-        })
+        rows.append(
+            {
+                "search_term": item.get("search_term"),
+                "title": item.get("title", ""),
+                "price": item.get("price", {}).get("value"),
+                "currency": item.get("price", {}).get("currency"),
+                "category": item.get("categoryPath"),
+                "brand": item.get("brand"),
+                "condition": item.get("condition"),
+                "url": item.get("itemWebUrl"),
+            }
+        )
 
     df = pd.DataFrame(rows)
-    df.columns = df.columns.str.lower().str.replace(' ', '_')
+    df.columns = df.columns.str.lower().str.replace(" ", "_")
     # Ensure the directory exists before saving
     Path(filename).parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(filename, index=True, index_label="id")
@@ -213,14 +213,12 @@ def extract_raw_data():
     print("🔐 Access token retrieved")
 
     search_terms = fetch_search_terms()
-    print(
-        f"📊 Found {len(search_terms)} brand+subcategory combinations to search")
+    print(f"📊 Found {len(search_terms)} brand+subcategory combinations to search")
 
     all_results = []
 
     for i, term in enumerate(search_terms, 1):
-        print(
-            f"🔎 [{i}/{len(search_terms)}] Searching for '{term}' (top 10 results)...")
+        print(f"🔎 [{i}/{len(search_terms)}] Searching for '{term}' (top 10 results)...")
 
         # Get top 20 results for this search term
         batch = search_ebay_items(term, access_token, limit=10, offset_param=0)
@@ -234,11 +232,10 @@ def extract_raw_data():
                 if item.get("price", {}).get("currency") != "GBP":
                     logging.warning(
                         "Non-GBP price found: %s for item '%s' (search term: '%s')",
-                        item.get('price'),
-                        item.get(
-                            'title',
-                            ''),
-                        term)
+                        item.get("price"),
+                        item.get("title", ""),
+                        term,
+                    )
             all_results.extend(batch)
             print(f"✅ Found {len(batch)} items for '{term}'")
 

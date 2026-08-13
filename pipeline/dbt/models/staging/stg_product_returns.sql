@@ -5,7 +5,7 @@ MODEL: stg_product_returns
 ===================================================================================
 
 PURPOSE:
-    Staging model for product return data used in return rate analysis and 
+    Staging model for product return data used in return rate analysis and
     customer satisfaction metrics.
 
 SOURCE:
@@ -46,11 +46,11 @@ WITH cleaned_product_returns AS (
         SAFE_CAST(product_id as INTEGER) as product_id,  -- product SKU (for reporting joins)
         SAFE_CAST(return_quantity as FLOAT64) as return_quantity,
         return_status,
-        
+
         -- Add metadata
         CURRENT_TIMESTAMP as dbt_updated_at,
         CURRENT_DATE as dbt_valid_from
-        
+
     FROM {{ source('loom_sync', 'product_returns') }}
     WHERE return_date IS NOT NULL
 )

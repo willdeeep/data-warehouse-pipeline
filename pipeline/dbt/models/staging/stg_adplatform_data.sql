@@ -45,7 +45,7 @@ ROW DEFINITION:
 */
 
 WITH cleaned_adplatform AS (
-    SELECT 
+    SELECT
         -- Original source columns with SAFE_CAST for data types
         date,
         SAFE_CAST(criteo_impressions as INTEGER) as criteo_impressions,
@@ -63,11 +63,11 @@ WITH cleaned_adplatform AS (
         SAFE_CAST(tiktok_impressions as INTEGER) as tiktok_impressions,
         SAFE_CAST(tiktok_clicks as INTEGER) as tiktok_clicks,
         SAFE_CAST(tiktok_cost as FLOAT64) as tiktok_cost,
-        
+
         -- Add metadata
         CURRENT_TIMESTAMP as dbt_updated_at,
         CURRENT_DATE as dbt_valid_from
-        
+
     FROM {{ source('loom_sync', 'adplatform_data') }}
     WHERE date IS NOT NULL
 )

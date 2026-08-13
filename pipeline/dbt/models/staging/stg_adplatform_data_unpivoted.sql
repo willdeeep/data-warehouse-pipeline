@@ -5,7 +5,7 @@ MODEL: stg_adplatform_data_unpivoted
 ===================================================================================
 
 PURPOSE:
-    Staging model that transforms wide-format advertising platform data into 
+    Staging model that transforms wide-format advertising platform data into
     normalized long format for easier analysis and aggregation across platforms.
 
 SOURCE:
@@ -22,7 +22,7 @@ GRAIN:
 
 PLATFORMS INCLUDED:
     - Criteo (retargeting)
-    - Google (search and display)  
+    - Google (search and display)
     - Meta/Facebook (social media)
     - RTB House (programmatic)
     - TikTok (social video)
@@ -51,7 +51,7 @@ WITH base_data AS (
 
 unpivoted_adplatform AS (
     -- Criteo data
-    SELECT 
+    SELECT
         date,
         'criteo' as ad_platform,
         SAFE_CAST(criteo_impressions as INTEGER) as impressions,
@@ -63,11 +63,11 @@ unpivoted_adplatform AS (
         dbt_valid_from
     FROM base_data
     WHERE criteo_impressions > 0 OR criteo_clicks > 0 OR criteo_cost > 0
-    
+
     UNION ALL
-    
+
     -- Google data
-    SELECT 
+    SELECT
         date,
         'google' as ad_platform,
         SAFE_CAST(google_impressions as INTEGER) as impressions,
@@ -79,11 +79,11 @@ unpivoted_adplatform AS (
         dbt_valid_from
     FROM base_data
     WHERE google_impressions > 0 OR google_clicks > 0 OR google_cost > 0
-    
+
     UNION ALL
-    
+
     -- Meta data
-    SELECT 
+    SELECT
         date,
         'meta' as ad_platform,
         SAFE_CAST(meta_impressions as INTEGER) as impressions,
@@ -95,11 +95,11 @@ unpivoted_adplatform AS (
         dbt_valid_from
     FROM base_data
     WHERE meta_impressions > 0 OR meta_clicks > 0 OR meta_cost > 0
-    
+
     UNION ALL
-    
+
     -- RTB House data
-    SELECT 
+    SELECT
         date,
         'rtbhouse' as ad_platform,
         SAFE_CAST(rtbhouse_impressions as INTEGER) as impressions,
@@ -111,11 +111,11 @@ unpivoted_adplatform AS (
         dbt_valid_from
     FROM base_data
     WHERE rtbhouse_impressions > 0 OR rtbhouse_clicks > 0 OR rtbhouse_cost > 0
-    
+
     UNION ALL
-    
+
     -- TikTok data
-    SELECT 
+    SELECT
         date,
         'tiktok' as ad_platform,
         SAFE_CAST(tiktok_impressions as INTEGER) as impressions,
@@ -129,7 +129,7 @@ unpivoted_adplatform AS (
     WHERE tiktok_impressions > 0 OR tiktok_clicks > 0 OR tiktok_cost > 0
 )
 
-SELECT 
+SELECT
     date,
     ad_platform,
     impressions,

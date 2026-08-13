@@ -13,7 +13,7 @@ GRAIN:
 SOURCES:
     - fct_transactions (core layer)
     - dim_date (core layer)
-    - dim_users (core layer) 
+    - dim_users (core layer)
     - dim_products (core layer)
     - fct_sessions (core layer)
 
@@ -57,7 +57,7 @@ SELECT
   ft.user_cookie_id AS user_cookie_id,
   ft.session_id,
   ft.product_id AS product_id,
-  
+
   -- Date dimension attributes
   d.date AS transaction_date,
   d.year AS transaction_year,
@@ -66,7 +66,7 @@ SELECT
   d.quarter AS transaction_quarter,
   d.is_weekend,
   d.is_holiday,
-  
+
   -- Product dimension attributes (from current SCD version)
   p.name AS product_name,
   b.brand_name AS product_brand,
@@ -74,7 +74,7 @@ SELECT
   sc.sub_category_name AS product_sub_category,
   p.gender_target AS product_gender_target,
   p.list_price AS product_list_price,
-  
+
   -- User dimension attributes (from current SCD version, null for guest checkout)
   u.city AS user_city,
   u.gender AS user_gender,
@@ -82,7 +82,7 @@ SELECT
   u.lifetime_orders AS user_lifetime_orders,
   u.lifetime_value AS user_lifetime_value,
   u.loom_plus_status AS user_loom_plus_status,
-  
+
   -- Transaction metrics
   ft.transaction_coupon IS NOT NULL AS coupon_flag,
   ft.return_status,
@@ -97,7 +97,7 @@ SELECT
     ELSE 0
   END AS refund_amount,
   -- Net revenue after refunds
-  ft.product_revenue - 
+  ft.product_revenue -
     CASE
       WHEN ft.return_status = 'Refund' THEN ft.product_price * COALESCE(ft.return_quantity, 0)
       ELSE 0
@@ -106,7 +106,7 @@ FROM {{ ref('fct_transactions') }} ft
 LEFT JOIN {{ ref('dim_date') }} d ON ft.date_key = d.date_key
 -- Join to current version of user dimension using SCD Type 2 logic
 LEFT JOIN {{ ref('dim_users') }} u ON ft.user_crm_id = u.user_crm_id AND u.is_current = TRUE
--- Join to current version of product dimension using SCD Type 2 logic  
+-- Join to current version of product dimension using SCD Type 2 logic
 LEFT JOIN {{ ref('dim_products') }} p ON ft.product_id = p.product_id AND p.is_current = TRUE
 LEFT JOIN {{ ref('dim_brand') }} b ON p.brand_key = b.brand_key
 LEFT JOIN {{ ref('dim_sub_category') }} sc ON p.sub_category_key = sc.sub_category_key

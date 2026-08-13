@@ -39,7 +39,7 @@ models:
         columns: true
       +contract:
         enforced: false  # Set to true when ready to enforce schema contracts
-    
+
     # Core models configuration (normalized conformed star schema — was "intermediate")
     core:
       +materialized: table
@@ -48,7 +48,7 @@ models:
       +persist_docs:
         relation: true
         columns: true
-        
+
     # Mart models configuration
     marts:
       +materialized: table

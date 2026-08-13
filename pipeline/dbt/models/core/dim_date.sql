@@ -39,32 +39,32 @@ date_dimension AS (
     SELECT
         -- Primary key: YYYYMMDD format
         CAST(FORMAT_DATE('%Y%m%d', date_day) AS INT64) AS date_key,
-        
+
         -- Date attributes
         date_day AS date,
         EXTRACT(DAYOFWEEK FROM date_day) AS day_of_week,
         EXTRACT(MONTH FROM date_day) AS month,
         EXTRACT(QUARTER FROM date_day) AS quarter,
         EXTRACT(YEAR FROM date_day) AS year,
-        
+
         -- Business logic flags
-        CASE 
-            WHEN EXTRACT(DAYOFWEEK FROM date_day) IN (1, 7) THEN TRUE 
-            ELSE FALSE 
+        CASE
+            WHEN EXTRACT(DAYOFWEEK FROM date_day) IN (1, 7) THEN TRUE
+            ELSE FALSE
         END AS is_weekend,
-        
+
         -- Simple holiday logic (can be enhanced with actual holiday calendar)
-        CASE 
+        CASE
             WHEN EXTRACT(MONTH FROM date_day) = 12 AND EXTRACT(DAY FROM date_day) = 25 THEN TRUE -- Christmas
             WHEN EXTRACT(MONTH FROM date_day) = 1 AND EXTRACT(DAY FROM date_day) = 1 THEN TRUE   -- New Year
             WHEN EXTRACT(MONTH FROM date_day) = 7 AND EXTRACT(DAY FROM date_day) = 4 THEN TRUE   -- Independence Day
-            ELSE FALSE 
+            ELSE FALSE
         END AS is_holiday,
-        
+
         -- dbt metadata
         CURRENT_TIMESTAMP() AS dbt_updated_at,
         CURRENT_TIMESTAMP() AS dbt_created_at
-        
+
     FROM date_spine
 )
 

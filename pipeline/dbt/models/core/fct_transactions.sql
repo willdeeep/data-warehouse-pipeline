@@ -19,7 +19,7 @@ KEY BUSINESS METRICS:
 
 FOREIGN KEYS:
     - date_key -> dim_date
-    - user_crm_id -> dim_users  
+    - user_crm_id -> dim_users
     - product_id -> dim_products
     - session_id -> fct_sessions
 
@@ -42,20 +42,20 @@ WITH transaction_items AS (
         item_id,
         transaction_id,
         product_id,
-        
+
         -- Date Key - formatted as a string 'YYYYMMDD' for efficient querying
         CAST(REPLACE(CAST(date AS STRING), '-', '') AS INT64) as date_key,
-        
+
         -- Product Metrics
         product_price,
         product_quantity,
         ROUND(product_price * product_quantity, 2) as product_revenue,
-        
+
         -- Source metadata
         date,
         dbt_updated_at,
         dbt_valid_from
-        
+
     FROM {{ ref('stg_transactions_and_items') }}
 ),
 
@@ -69,7 +69,7 @@ transactions AS (
         transaction_revenue,
         transaction_shipping,
         transaction_total
-        
+
     FROM {{ ref('stg_transactions') }}
 ),
 
@@ -85,8 +85,8 @@ product_returns AS (
     FROM {{ ref('stg_product_returns') }}
 ),
 
-purchase_time AS (  
-    SELECT 
+purchase_time AS (
+    SELECT
         -- Extract purchase event times for session context
         transaction_id,
         item_id as product_id,
@@ -103,39 +103,39 @@ final AS (
         COALESCE(t.user_crm_id, NULL) as user_crm_id,  -- Natural key for user dimension
         COALESCE(t.user_cookie_id, NULL) as user_cookie_id,  -- Anonymous user identifier
         ti.product_id as product_id,  -- Natural key for product dimension
-        
+
         -- Natural Keys
         ti.transaction_id,
         EXTRACT(TIME FROM pt.event_time) as purchase_time,  -- Timestamp of the purchase event
         t.session_id,
-        
+
         -- Product Metrics
         ti.product_price,
         ti.product_quantity,
         ti.product_revenue,
-        
+
         -- Transaction Context
         t.transaction_revenue,
         t.transaction_shipping,
         t.transaction_total,
         t.transaction_coupon,
-        
+
         -- Calculated Business Metrics
         ROUND(ti.product_revenue / NULLIF(t.transaction_total, 0) * 100, 2) as product_contribution_pct,
-        CASE 
+        CASE
             WHEN t.transaction_coupon IS NOT NULL THEN 'Discount'
             ELSE 'Full Price'
         END as pricing_type,
-        
+
         -- Customer Classification
-        CASE 
+        CASE
             WHEN t.user_crm_id IS NOT NULL THEN 'Registered'
             ELSE 'Guest'
         END as customer_type,
 
         -- Loom+ Status (from dim_users at transaction time, null for empty/null values)
-        CASE 
-            WHEN u.loom_plus_status IS NOT NULL AND u.loom_plus_status = TRUE 
+        CASE
+            WHEN u.loom_plus_status IS NOT NULL AND u.loom_plus_status = TRUE
             THEN CAST(u.loom_plus_status AS STRING)
             ELSE NULL
         END as loom_plus_status,
@@ -144,24 +144,24 @@ final AS (
         pr.return_status,
         pr.return_quantity,
         pr.return_date,
-        
+
         -- Return Calculations (matching YAML definition)
-        CASE 
+        CASE
             WHEN pr.return_status IS NOT NULL THEN TRUE
             ELSE FALSE
         END as has_return,
-        
-        CASE 
-            WHEN ti.product_quantity > 0 THEN 
+
+        CASE
+            WHEN ti.product_quantity > 0 THEN
                 ROUND(COALESCE(pr.return_quantity, 0) / ti.product_quantity * 100, 2)
             ELSE 0
         END as return_rate_pct,
 
-        
+
         -- Metadata
         ti.dbt_updated_at,
         ti.dbt_valid_from
-        
+
     FROM transaction_items ti
     LEFT JOIN transactions t
         ON ti.transaction_id = t.transaction_id

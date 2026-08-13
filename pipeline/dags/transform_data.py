@@ -1,11 +1,11 @@
-from datetime import datetime
-from pathlib import Path
 import logging
 import os
 import sys
+from datetime import datetime
+from pathlib import Path
 
-from google.cloud import bigquery
 import pandas as pd
+from google.cloud import bigquery
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -50,7 +50,7 @@ query = """
     ORDER BY total_items_sold DESC
     """
 bq_df = client.query(query).to_dataframe()
-bq_df = bq_df.rename(columns={'sub_category': 'category'})
+bq_df = bq_df.rename(columns={"sub_category": "category"})
 
 
 def extract_brand_category(search_term, categories):
@@ -94,18 +94,33 @@ def extract_brand_category(search_term, categories):
         "pierre cardin",
         "hummel",
         "calvin klein",
-        "swarovski"]
+        "swarovski",
+    ]
     leading_words = [
-        "new", "latest", "original", "authentic", "genuine", "mens", "women",
-        "womens", "kids", "unisex", "ladies", "boys", "girls", "child",
-        "children", "male", "female"
+        "new",
+        "latest",
+        "original",
+        "authentic",
+        "genuine",
+        "mens",
+        "women",
+        "womens",
+        "kids",
+        "unisex",
+        "ladies",
+        "boys",
+        "girls",
+        "child",
+        "children",
+        "male",
+        "female",
     ]
 
     st = search_term.lower().strip()
     # Remove leading words
     for word in leading_words:
         if st.startswith(word + " "):
-            st = st[len(word):].strip()
+            st = st[len(word) :].strip()
     # Find category from BigQuery categories (longest match first)
     found_cat = ""
     cat_idx = -1
@@ -121,7 +136,7 @@ def extract_brand_category(search_term, categories):
         # Remove leading words again
         for word in leading_words:
             if brand_part.startswith(word + " "):
-                brand_part = brand_part[len(word):].strip()
+                brand_part = brand_part[len(word) :].strip()
         # Try to match brand from known brands
         brand = ""
         for b in sorted(known_brands, key=lambda x: -len(x)):
@@ -129,8 +144,9 @@ def extract_brand_category(search_term, categories):
                 brand = b.title()
                 break
         if not brand:
-            brand = (' '.join([w.capitalize() for w in brand_part.split()])
-                     if brand_part else "Unknown")
+            brand = (
+                " ".join([w.capitalize() for w in brand_part.split()]) if brand_part else "Unknown"
+            )
         category = found_cat.title()
         return brand, category
     else:
@@ -168,28 +184,11 @@ def extract_gender(search_term):
     """
     gender_priority = ["womens", "mens", "unisex", "kids"]
     gender_keywords = {
-        "womens": [
-            "women",
-            "womens",
-            "woman's",
-            "female",
-            "ladies"],
-        "mens": [
-            "men",
-            "mens",
-            "man's",
-            "male"],
+        "womens": ["women", "womens", "woman's", "female", "ladies"],
+        "mens": ["men", "mens", "man's", "male"],
         "unisex": ["unisex"],
-        "kids": [
-            "kids",
-            "child",
-            "children",
-            "boys",
-            "girls",
-            "boy",
-            "girl",
-            "youth",
-            "junior"]}
+        "kids": ["kids", "child", "children", "boys", "girls", "boy", "girl", "youth", "junior"],
+    }
     st = search_term.lower()
     found = []
     for gender in gender_priority:
@@ -220,7 +219,7 @@ def main():
     """
     df = pd.read_csv(input_csv)
 
-    categories = bq_df['category'].dropna().unique().tolist()
+    categories = bq_df["category"].dropna().unique().tolist()
 
     # Always extract brand, category, and gender from search_term
 
@@ -242,14 +241,22 @@ def main():
         st = str(row["search_term"]) if pd.notnull(row["search_term"]) else ""
         title = str(row["title"]) if pd.notnull(row["title"]) else ""
         if not st.strip():
-            return pd.Series(
-                {"brand": "Unknown", "category": "Unknown", "gender": "unknown"})
+            return pd.Series({"brand": "Unknown", "category": "Unknown", "gender": "unknown"})
         brand, category = extract_brand_category(st, categories)
         gender = extract_gender(st)
         # Additional check for unisex: look for kids in title
         if gender == "unisex":
-            kids_keywords = ["kids", "child", "children", "boys", "girls",
-                             "boy", "girl", "youth", "junior"]
+            kids_keywords = [
+                "kids",
+                "child",
+                "children",
+                "boys",
+                "girls",
+                "boy",
+                "girl",
+                "youth",
+                "junior",
+            ]
             title_lower = title.lower()
             if any(kw in title_lower for kw in kids_keywords):
                 gender = "kids"
@@ -259,56 +266,54 @@ def main():
             category = "Unknown"
         if not gender:
             gender = "unknown"
-        return pd.Series(
-            {"brand": brand, "category": category, "gender": gender})
+        return pd.Series({"brand": brand, "category": category, "gender": gender})
 
     df[["brand", "category", "gender"]] = df.apply(safe_extract, axis=1)
 
     # Filter based on desired conditions
-    desired_conditions = ['New with box', 'New with tags', 'New without tags']
+    desired_conditions = ["New with box", "New with tags", "New without tags"]
     if "condition" in df.columns:
-        df = df[df['condition'].isin(desired_conditions)]
+        df = df[df["condition"].isin(desired_conditions)]
 
     # Merge on both brand and category (case-insensitive)
-    df['brand_lower'] = df['brand'].str.lower()
-    df['category_lower'] = df['category'].str.lower()
-    bq_df['brand_lower'] = bq_df['brand'].str.lower()
-    bq_df['category_lower'] = bq_df['category'].str.lower()
+    df["brand_lower"] = df["brand"].str.lower()
+    df["category_lower"] = df["category"].str.lower()
+    bq_df["brand_lower"] = bq_df["brand"].str.lower()
+    bq_df["category_lower"] = bq_df["category"].str.lower()
 
     # Merge on both brand and category (case-insensitive)
     df = df.merge(
-        bq_df[['brand_lower', 'category_lower', 'category']],
-        on=['brand_lower', 'category_lower'],
-        how='left',
-        suffixes=('', '_bq')
+        bq_df[["brand_lower", "category_lower", "category"]],
+        on=["brand_lower", "category_lower"],
+        how="left",
+        suffixes=("", "_bq"),
     )
 
     # Prefer BigQuery category if available
-    df['category'] = df['category_bq'].combine_first(df['category'])
-    df = df.drop(columns=['brand_lower', 'category_lower', 'category_bq'])
+    df["category"] = df["category_bq"].combine_first(df["category"])
+    df = df.drop(columns=["brand_lower", "category_lower", "category_bq"])
 
     # Add transformation_timestamp column
-    df['transformation_timestamp'] = datetime.now().date()
+    df["transformation_timestamp"] = datetime.now().date()
 
     # Get the list of columns
     cols = list(df.columns)
 
     # Find the positions
-    condition_idx = cols.index('condition')
-    gender_idx = cols.index('gender')
+    condition_idx = cols.index("condition")
+    gender_idx = cols.index("gender")
 
     # Remove 'gender' from its current position
     cols.pop(gender_idx)
 
     # Insert 'gender' after 'condition'
-    cols.insert(condition_idx + 1, 'gender')
+    cols.insert(condition_idx + 1, "gender")
 
     # Reorder the DataFrame
     df = df[cols]
 
     df.to_csv(output_csv, index=False)
-    print(
-        f"✅ Saved cleaned data with brand, category, and gender to {output_csv}")
+    print(f"✅ Saved cleaned data with brand, category, and gender to {output_csv}")
 
     table_id = os.getenv("BIGQUERY_TARGET_TABLE")
     upload_csv_to_bigquery(output_csv, table_id)
@@ -333,8 +338,7 @@ def upload_csv_to_bigquery(csv_path, table_id):
     )
     try:
         with open(str(csv_path), "rb") as source_file:
-            job = bq_client.load_table_from_file(
-                source_file, table_id, job_config=job_config)
+            job = bq_client.load_table_from_file(source_file, table_id, job_config=job_config)
         job.result()
         logger.info("Uploaded %s to BigQuery table %s", csv_path, table_id)
     except (OSError, ValueError) as e:

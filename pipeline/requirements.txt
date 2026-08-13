@@ -8,7 +8,7 @@ psycopg2-binary==2.9.9  # PostgreSQL adapter for tests
 dbt-core==1.7.18
 dbt-bigquery==1.7.9
 
-# Airflow Providers and Add-ons 
+# Airflow Providers and Add-ons
 apache-airflow-providers-google==10.21.0  # Needed for BigQuery operations in DAGs
 apache-airflow-providers-slack==8.7.1  # NOT in base image - needs to be installed
 # apache-airflow-providers-common-sql==1.14.2  # Already in base image (1.15.0)
@@ -28,6 +28,6 @@ python-dotenv==1.0.1
 # Note: The following packages are already in the base image with compatible versions:
 # - astro-sdk-python==1.8.1 (matches our requirement)
 # - cryptography==43.0.0 (newer than our 41.0.3)
-# - connexion==2.14.2 (newer than our 2.14.1) 
+# - connexion==2.14.2 (newer than our 2.14.1)
 # - pendulum==3.0.0 (newer than our 2.1.2)
 # - requests==2.31.0 (matches our requirement)

@@ -9,19 +9,18 @@ DATASET = "warehouse"
 TEMP_TABLE = "temp_weekly_adplatform_spend"
 
 default_args = {
-    'owner': 'airflow',
-    'retries': 1,
+    "owner": "airflow",
+    "retries": 1,
 }
 
 with DAG(
-    dag_id='weekly_adplatform_spend',
+    dag_id="weekly_adplatform_spend",
     default_args=default_args,
     start_date=datetime(2024, 1, 1),
     schedule=None,
     catchup=False,
-    tags=['export', 'bigquery', 'gcs'],
+    tags=["export", "bigquery", "gcs"],
 ) as dag:
-
     bq_query = BigQueryInsertJobOperator(
         task_id="run_weekly_adplatform_spend_query",
         configuration={
@@ -49,17 +48,17 @@ with DAG(
                 "useLegacySql": False,
             }
         },
-        gcp_conn_id='gcp-default',
+        gcp_conn_id="gcp-default",
     )
 
     export_to_gcs = BigQueryToGCSOperator(
-        task_id='export_temp_table_to_gcs',
+        task_id="export_temp_table_to_gcs",
         source_project_dataset_table=f"{PROJECT_ID}.{DATASET}.{TEMP_TABLE}",
         destination_cloud_storage_uris=[
-            'gs://weekly-insights-data/weekly_adplatform_spend_{{ ds }}.parquet'
+            "gs://weekly-insights-data/weekly_adplatform_spend_{{ ds }}.parquet"
         ],
-        export_format='PARQUET',
-        gcp_conn_id='gcp-default',
+        export_format="PARQUET",
+        gcp_conn_id="gcp-default",
     )
 
     bq_query >> export_to_gcs

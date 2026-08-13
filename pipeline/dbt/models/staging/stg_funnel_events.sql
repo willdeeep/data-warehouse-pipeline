@@ -5,7 +5,7 @@ MODEL: stg_funnel_events
 ===================================================================================
 
 PURPOSE:
-    Staging model for user funnel event tracking data used in conversion 
+    Staging model for user funnel event tracking data used in conversion
     analysis and customer journey mapping.
 
 SOURCE:
@@ -49,15 +49,13 @@ WITH cleaned_funnel_events AS (
         event_name,
         SAFE_CAST(item_id AS INTEGER) AS item_id,
         SAFE_CAST(transaction_id AS INTEGER) AS transaction_id,
-        
+
         -- Add metadata
         CURRENT_TIMESTAMP as dbt_updated_at,
         CURRENT_DATE as dbt_valid_from
-        
+
     FROM {{ source('loom_sync', 'funnelevents') }}
     WHERE date IS NOT NULL
 )
 
 SELECT * FROM cleaned_funnel_events
-
-

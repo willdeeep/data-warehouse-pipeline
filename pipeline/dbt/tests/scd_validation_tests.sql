@@ -15,7 +15,7 @@ TESTS INCLUDED:
 */
 
 -- Test 1: Ensure each user has exactly one current record
-SELECT 
+SELECT
     'dim_users' AS table_name,
     'current_record_uniqueness' AS test_name,
     CAST(user_crm_id AS STRING) AS natural_key,
@@ -27,8 +27,8 @@ HAVING COUNT(*) != 1
 
 UNION ALL
 
--- Test 2: Ensure each product has exactly one current record  
-SELECT 
+-- Test 2: Ensure each product has exactly one current record
+SELECT
     'dim_products' AS table_name,
     'current_record_uniqueness' AS test_name,
     CAST(product_id AS STRING) AS natural_key,
@@ -41,7 +41,7 @@ HAVING COUNT(*) != 1
 UNION ALL
 
 -- Test 3: Validate current records have NULL valid_to
-SELECT 
+SELECT
     'dim_users' AS table_name,
     'current_valid_to_null' AS test_name,
     CAST(user_crm_id AS STRING) AS natural_key,
@@ -53,7 +53,7 @@ HAVING COUNT(*) > 0
 
 UNION ALL
 
-SELECT 
+SELECT
     'dim_products' AS table_name,
     'current_valid_to_null' AS test_name,
     CAST(product_id AS STRING) AS natural_key,
@@ -66,7 +66,7 @@ HAVING COUNT(*) > 0
 UNION ALL
 
 -- Test 4: Validate historical records have non-NULL valid_to
-SELECT 
+SELECT
     'dim_users' AS table_name,
     'historical_valid_to_not_null' AS test_name,
     CAST(user_crm_id AS STRING) AS natural_key,
@@ -78,7 +78,7 @@ HAVING COUNT(*) > 0
 
 UNION ALL
 
-SELECT 
+SELECT
     'dim_products' AS table_name,
     'historical_valid_to_not_null' AS test_name,
     CAST(product_id AS STRING) AS natural_key,

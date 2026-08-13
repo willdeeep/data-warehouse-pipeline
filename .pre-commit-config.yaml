@@ -4,16 +4,21 @@ minimum_pre_commit_version: "3.5.0"
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.14.2
+    # Legacy Airflow DAG code + its root tests carry lint debt (E501/F401); they are
+    # excluded from ruff until the Plan 04 rewrite. Tracked by #70 (docstrings), #71/#72
+    # (DAG + drift tests). `data_generation/tests` is NOT matched by these anchored patterns.
     hooks:
       - id: ruff
         args: [--fix]
+        exclude: '^(pipeline/dags/|tests/)'
       - id: ruff-format
+        exclude: '^(pipeline/dags/|tests/)'
 
   # SQL linting (sqlfluff) is added in Plan 03, once the dbt project compiles —
   # its dbt templater needs a working profile + installed deps to lint models.
 
   - repo: https://github.com/antonbabenko/pre-commit-terraform
-    rev: v1.100.2
+    rev: v1.108.1
     hooks:
       - id: terraform_fmt
       - id: terraform_validate

@@ -1,7 +1,7 @@
 {{ config(materialized='table') }}
 
 WITH user_transactions AS (
-    SELECT 
+    SELECT
         SAFE_CAST(user_crm_id AS INTEGER) as user_crm_id,
         COUNT(DISTINCT transaction_id) as transaction_count,
         SUM(transaction_total) as total_revenue
@@ -10,7 +10,7 @@ WITH user_transactions AS (
 ),
 
 base_users AS (
-    SELECT 
+    SELECT
         SAFE_CAST(user_crm_id AS INTEGER) as user_crm_id,
         city,
         user_gender,
@@ -32,7 +32,7 @@ base_users AS (
     WHERE SAFE_CAST(user_crm_id AS INT64) IS NOT NULL
 )
 
-SELECT 
+SELECT
     u.*,
     COALESCE(t.transaction_count, 0) as transaction_count,
     COALESCE(t.total_revenue, 0.0) as total_revenue

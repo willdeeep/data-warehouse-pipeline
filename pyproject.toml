@@ -1,17 +1,33 @@
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning"]
+build-backend = "hatchling.build"
+
 [project]
 name = "data-warehouse-pipeline"
-version = "0.1.0"
+dynamic = ["version"] # tag-derived via uv-dynamic-versioning (#31); the git tag is the source of truth
 description = "Loom synthetic e-commerce data warehouse — Terraform + Faker + dbt + Airflow"
 requires-python = ">=3.13"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+fallback-version = "0.0.0" # used when no git tag is present (e.g. shallow CI clone)
+
+[tool.hatch.build.targets.wheel]
+bypass-selection = true # metadata-only root (no importable package); tasks.py stays a top-level script
 
 # Workspace members are added as they are created:
 #   - data_generation  (Plan 02)
 # [tool.uv.workspace]
 # members = ["data_generation"]
 
-# Task runner: `uv run invoke --list` (tasks defined in tasks.py).
+# Local dev toolchain (installed by `uv sync`; not needed to run the app in a container):
+#   invoke      — task runner (`uv run invoke --list`, tasks in tasks.py)
+#   ruff        — lint + format (pre-commit and CI pin the same version)
+#   pre-commit  — local quality gate (`uv run pre-commit install`)
 [dependency-groups]
-dev = ["invoke>=2.2"]
+dev = ["invoke>=2.2", "ruff==0.14.2", "pre-commit>=3.5.0"]  # ruff pinned to match .pre-commit-config + CI
 
 [tool.ruff]
 target-version = "py313"

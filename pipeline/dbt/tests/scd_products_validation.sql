@@ -10,7 +10,7 @@ This test returns only FAILING records (0 rows = all tests pass).
 */
 
 WITH products_scd_structure AS (
-    SELECT 
+    SELECT
         product_id,
         COUNT(*) as version_count,
         COUNT(CASE WHEN is_current = TRUE THEN 1 END) as current_count,
@@ -20,14 +20,14 @@ WITH products_scd_structure AS (
 ),
 
 temporal_integrity AS (
-    SELECT 
+    SELECT
         product_id,
         product_surrogate_key,
         valid_from,
         valid_to,
         is_current,
         LAG(valid_to) OVER (PARTITION BY product_id ORDER BY valid_from) as prev_valid_to,
-        CASE 
+        CASE
             WHEN LAG(valid_to) OVER (PARTITION BY product_id ORDER BY valid_from) IS NOT NULL
                 AND LAG(valid_to) OVER (PARTITION BY product_id ORDER BY valid_from) != valid_from
             THEN 'TEMPORAL_GAP_OR_OVERLAP'
@@ -41,7 +41,7 @@ temporal_integrity AS (
 )
 
 -- Return only products with NO current record (SCD problem)
-SELECT 
+SELECT
     CAST(product_id AS STRING) as product_id,
     'NO_CURRENT_RECORD' as issue_type,
     CAST(current_count AS STRING) as issue_count,
@@ -52,7 +52,7 @@ WHERE current_count = 0
 UNION ALL
 
 -- Return only products with MULTIPLE current records (SCD problem)
-SELECT 
+SELECT
     CAST(product_id AS STRING) as product_id,
     'MULTIPLE_CURRENT_RECORDS' as issue_type,
     CAST(current_count AS STRING) as issue_count,
@@ -63,7 +63,7 @@ WHERE current_count > 1
 UNION ALL
 
 -- Return only records with temporal integrity problems
-SELECT 
+SELECT
     CAST(product_id AS STRING) as product_id,
     temporal_validation as issue_type,
     '1' as issue_count,

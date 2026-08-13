@@ -5,7 +5,7 @@ MODEL: stg_product_list_prices
 ===================================================================================
 
 PURPOSE:
-    Staging model for product list prices used in discount analysis and 
+    Staging model for product list prices used in discount analysis and
     revenue calculations.
 
 SOURCE:
@@ -43,14 +43,14 @@ WITH cleaned_product_list_prices AS (
     SELECT
         -- Primary key
         SAFE_CAST(item_id as INTEGER) as product_id,  -- Normalize to product_id
-        
+
         -- List price validation and cleaning
         SAFE_CAST(item_list_price as FLOAT64) as list_price,  -- Normalize to list_price
-        
+
         -- Add metadata
         CURRENT_TIMESTAMP as dbt_updated_at,
         CURRENT_DATE as dbt_valid_from
-        
+
     FROM {{ source('loom_sync', 'product_listprices') }}
     WHERE item_id IS NOT NULL
       AND TRIM(item_id) != ''

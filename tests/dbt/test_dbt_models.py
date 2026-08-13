@@ -10,9 +10,9 @@ This module tests the dbt components of the pipeline including:
 
 # pylint: disable=attribute-defined-outside-init
 
-from pathlib import Path
 import json
 import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -50,7 +50,8 @@ class TestDbtProject:
 
         # Test that it's valid YAML
         import yaml
-        with open(self.dbt_project_yml, encoding='utf-8') as f:
+
+        with open(self.dbt_project_yml, encoding="utf-8") as f:
             config = yaml.safe_load(f)
 
         assert config["name"] == "loom"
@@ -64,17 +65,11 @@ class TestDbtProject:
 
     def test_required_directories_exist(self):
         """Test that all required dbt directories exist."""
-        required_dirs = [
-            "models",
-            "macros",
-            "tests",
-            "analyses"
-        ]
+        required_dirs = ["models", "macros", "tests", "analyses"]
 
         for dir_name in required_dirs:
             dir_path = self.dbt_project_dir / dir_name
-            assert dir_path.exists(
-            ), f"Required directory {dir_name} is missing"
+            assert dir_path.exists(), f"Required directory {dir_name} is missing"
 
     def test_models_directory_structure(self):
         """Test the models directory has proper structure."""
@@ -85,8 +80,7 @@ class TestDbtProject:
 
         for subdir in expected_subdirs:
             subdir_path = models_dir / subdir
-            assert subdir_path.exists(
-            ), f"Models subdirectory {subdir} is missing"
+            assert subdir_path.exists(), f"Models subdirectory {subdir} is missing"
 
 
 class TestDbtMacros:
@@ -138,18 +132,13 @@ class TestDbtExecution:
     @pytest.mark.requires_dbt
     def test_dbt_compile(self):
         """Test that dbt can compile all models."""
-        result = subprocess.run(["dbt",
-                                 "compile",
-                                "--profiles-dir",
-                                 ".",
-                                 "--profile",
-                                 "loom",
-                                 "--target",
-                                 "dev"],
-                                cwd=self.dbt_dir,
-                                capture_output=True,
-                                text=True,
-                                check=False)
+        result = subprocess.run(
+            ["dbt", "compile", "--profiles-dir", ".", "--profile", "loom", "--target", "dev"],
+            cwd=self.dbt_dir,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
 
         assert result.returncode == 0, f"dbt compile failed: {result.stderr}"
 
@@ -161,7 +150,7 @@ class TestDbtExecution:
             cwd=self.dbt_dir,
             capture_output=True,
             text=True,
-            check=False
+            check=False,
         )
 
         assert result.returncode == 0, f"dbt parse failed: {result.stderr}"
@@ -170,32 +159,25 @@ class TestDbtExecution:
     def test_manifest_json_generation(self):
         """Test that manifest.json is generated correctly."""
         # Run dbt parse to generate manifest
-        subprocess.run(["dbt",
-                        "parse",
-                        "--profiles-dir",
-                        ".",
-                        "--profile",
-                        "loom",
-                        "--target",
-                        "dev"],
-                       cwd=self.dbt_dir,
-                       capture_output=True,
-                       text=True,
-                       check=False)
+        subprocess.run(
+            ["dbt", "parse", "--profiles-dir", ".", "--profile", "loom", "--target", "dev"],
+            cwd=self.dbt_dir,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
 
         manifest_path = self.dbt_dir / "target" / "manifest.json"
         if manifest_path.exists():
-            with open(manifest_path, encoding='utf-8') as f:
+            with open(manifest_path, encoding="utf-8") as f:
                 manifest = json.load(f)
 
             assert "nodes" in manifest
             assert "macros" in manifest
 
             # Check for key models
-            model_nodes = [node for node in manifest["nodes"]
-                           if node.startswith("model.")]
-            assert len(
-                model_nodes) > 20, "Expected more than 20 models in manifest"
+            model_nodes = [node for node in manifest["nodes"] if node.startswith("model.")]
+            assert len(model_nodes) > 20, "Expected more than 20 models in manifest"
 
 
 class TestDbtSources:
@@ -213,7 +195,8 @@ class TestDbtSources:
         assert self.source_yml.exists()
 
         import yaml
-        with open(self.source_yml, encoding='utf-8') as f:
+
+        with open(self.source_yml, encoding="utf-8") as f:
             sources = yaml.safe_load(f)
 
         assert "sources" in sources
@@ -222,7 +205,8 @@ class TestDbtSources:
     def test_source_definitions_complete(self):
         """Test that source definitions have required fields."""
         import yaml
-        with open(self.source_yml, encoding='utf-8') as f:
+
+        with open(self.source_yml, encoding="utf-8") as f:
             sources = yaml.safe_load(f)
 
         for source in sources["sources"]:
@@ -238,7 +222,8 @@ class TestDbtSources:
     def test_source_tests_defined(self):
         """Test that critical source columns have tests defined."""
         import yaml
-        with open(self.source_yml, encoding='utf-8') as f:
+
+        with open(self.source_yml, encoding="utf-8") as f:
             sources = yaml.safe_load(f)
 
         test_count = 0
@@ -298,38 +283,56 @@ class TestDbtIntegration:
     def test_staging_models_run(self):
         """Test that staging models can run successfully."""
         result = subprocess.run(
-            ["dbt", "run", "--select", "staging", "--profiles-dir",
-             ".", "--profile", "loom", "--target", "dev"],
+            [
+                "dbt",
+                "run",
+                "--select",
+                "staging",
+                "--profiles-dir",
+                ".",
+                "--profile",
+                "loom",
+                "--target",
+                "dev",
+            ],
             cwd=self.dbt_dir,
             capture_output=True,
             text=True,
-            check=False
+            check=False,
         )
 
         # Note: This may fail without proper credentials, which is expected in
         # CI
         if result.returncode != 0:
-            pytest.skip(
-                f"dbt run failed (likely missing credentials): {result.stderr}")
+            pytest.skip(f"dbt run failed (likely missing credentials): {result.stderr}")
 
     @pytest.mark.requires_dbt
     @pytest.mark.requires_db
     def test_data_quality_tests_run(self):
         """Test that data quality tests can run."""
         result = subprocess.run(
-            ["dbt", "test", "--select", "staging", "--profiles-dir",
-             ".", "--profile", "loom", "--target", "dev"],
+            [
+                "dbt",
+                "test",
+                "--select",
+                "staging",
+                "--profiles-dir",
+                ".",
+                "--profile",
+                "loom",
+                "--target",
+                "dev",
+            ],
             cwd=self.dbt_dir,
             capture_output=True,
             text=True,
-            check=False
+            check=False,
         )
 
         # Note: This may fail without proper credentials, which is expected in
         # CI
         if result.returncode != 0:
-            pytest.skip(
-                f"dbt test failed (likely missing credentials): {result.stderr}")
+            pytest.skip(f"dbt test failed (likely missing credentials): {result.stderr}")
 
 
 if __name__ == "__main__":

@@ -46,23 +46,23 @@ WITH users_source AS (
     SELECT
         -- Natural key
         user_crm_id,
-        
+
         -- Source attributes (trackable for changes)
         city,
         user_gender AS gender,
         opt_in_status,
         loom_plus_status,
-        CASE 
+        CASE
             WHEN loom_plus_status = TRUE THEN loom_plus_tier
-            ELSE NULL 
+            ELSE NULL
         END AS loom_plus_tier,
-        
+
         -- Date attributes (less frequently changing)
         registration_date,
         latest_login_date,
         first_purchase_date,
         latest_purchase_date AS last_purchase_date,
-        
+
         -- Calculated metrics (will change over time)
         transaction_count AS lifetime_orders,
         total_revenue AS lifetime_value,
@@ -80,7 +80,7 @@ WITH users_source AS (
 
 -- Create change history by detecting when tracked attributes change
 user_changes AS (
-    SELECT 
+    SELECT
         user_crm_id,
         city,
         gender,

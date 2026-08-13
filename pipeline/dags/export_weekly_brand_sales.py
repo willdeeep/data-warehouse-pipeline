@@ -9,19 +9,18 @@ DATASET = "warehouse"
 TEMP_TABLE = "temp_weekly_brand_sales"
 
 default_args = {
-    'owner': 'airflow',
-    'retries': 1,
+    "owner": "airflow",
+    "retries": 1,
 }
 
 with DAG(
-    dag_id='export_weekly_brand_sales',
+    dag_id="export_weekly_brand_sales",
     default_args=default_args,
     start_date=datetime(2024, 1, 1),
     schedule=None,
     catchup=False,
-    tags=['export', 'bigquery', 'gcs'],
+    tags=["export", "bigquery", "gcs"],
 ) as dag:
-
     # 1. Run your SQL and save to a temp table
     bq_query = BigQueryInsertJobOperator(
         task_id="run_weekly_brand_sales_query",
@@ -52,18 +51,18 @@ with DAG(
                 "useLegacySql": False,
             }
         },
-        gcp_conn_id='gcp-default',
+        gcp_conn_id="gcp-default",
     )
 
     # 2. Export the temp table to GCS
     export_to_gcs = BigQueryToGCSOperator(
-        task_id='export_temp_table_to_gcs',
+        task_id="export_temp_table_to_gcs",
         source_project_dataset_table=f"{PROJECT_ID}.{DATASET}.{TEMP_TABLE}",
         destination_cloud_storage_uris=[
-            'gs://weekly-insights-data/weekly_brand_sales_{{ ds }}.parquet'
+            "gs://weekly-insights-data/weekly_brand_sales_{{ ds }}.parquet"
         ],
-        export_format='PARQUET',
-        gcp_conn_id='gcp-default',
+        export_format="PARQUET",
+        gcp_conn_id="gcp-default",
     )
 
     bq_query >> export_to_gcs
