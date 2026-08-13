@@ -1,6 +1,6 @@
 {% test sql_injection_detection(model, column_name, where=none) %}
   {#- Generic test for SQL injection detection with consolidated patterns -#}
-  
+
   select
     {{ column_name }},
     'Potential SQL injection pattern detected' as security_warning

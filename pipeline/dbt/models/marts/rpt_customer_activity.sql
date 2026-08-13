@@ -4,7 +4,7 @@ MART: rpt_customer_activity
 ===================================================================================
 
 PURPOSE:
-    Comprehensive customer activity tracking mart leveraging SCD Type 2 user 
+    Comprehensive customer activity tracking mart leveraging SCD Type 2 user
     dimensions to provide historical customer journey analysis.
 
 GRAIN:
@@ -43,12 +43,12 @@ BUSINESS VALUE:
 
 WITH customer_profile_changes AS (
     -- Track customer profile change events from SCD history
-    SELECT 
+    SELECT
         user_crm_id,
         'profile_change' AS activity_type,
         CAST(valid_from AS DATE) AS activity_date,
         DATETIME(CAST(valid_from AS DATE), TIME '12:00:00') AS activity_timestamp,
-        
+
         -- Customer state at this point in time
         city AS customer_city,
         gender AS customer_gender,
@@ -57,41 +57,41 @@ WITH customer_profile_changes AS (
         opt_in_status,
         lifetime_orders,
         lifetime_value,
-        
+
         -- Change indicators
         LAG(city) OVER (PARTITION BY user_crm_id ORDER BY valid_from) AS prev_city,
         LAG(loom_plus_status) OVER (PARTITION BY user_crm_id ORDER BY valid_from) AS prev_loom_plus_status,
         LAG(loom_plus_tier) OVER (PARTITION BY user_crm_id ORDER BY valid_from) AS prev_loom_plus_tier,
         LAG(lifetime_value) OVER (PARTITION BY user_crm_id ORDER BY valid_from) AS prev_lifetime_value,
-        
+
         -- Event metadata (standardized types)
         CAST(NULL AS INT64) AS transaction_id,
         CAST(NULL AS INT64) AS product_id,
         CAST(NULL AS FLOAT64) AS product_revenue,
         CAST(NULL AS INT64) AS product_quantity,
-        
+
         -- Customer segmentation at time of event
-        CASE 
+        CASE
             WHEN loom_plus_status = TRUE THEN 'Premium Customer'
-            WHEN lifetime_orders >= 5 THEN 'Loyal Customer' 
+            WHEN lifetime_orders >= 5 THEN 'Loyal Customer'
             WHEN lifetime_orders >= 2 THEN 'Repeat Customer'
             ELSE 'New Customer'
         END AS customer_state_at_time,
-        
+
         user_surrogate_key AS customer_version_key
-        
+
     FROM {{ ref('dim_users') }}
     WHERE user_crm_id IS NOT NULL
 ),
 
 transaction_activity AS (
     -- Track transaction events with customer state at time of purchase
-    SELECT 
+    SELECT
         ft.user_crm_id AS user_crm_id,
         'transaction' AS activity_type,
         PARSE_DATE('%Y%m%d', CAST(ft.date_key AS STRING)) AS activity_date,
         DATETIME(PARSE_DATE('%Y%m%d', CAST(ft.date_key AS STRING)), TIME '12:00:00') AS activity_timestamp,
-        
+
         -- Customer state at time of transaction (point-in-time join)
         u.city AS customer_city,
         u.gender AS customer_gender,
@@ -100,29 +100,29 @@ transaction_activity AS (
         u.opt_in_status,
         u.lifetime_orders,
         u.lifetime_value,
-        
+
         -- Previous state for change tracking (NULL for transactions)
         CAST(NULL AS STRING) AS prev_city,
         CAST(NULL AS BOOLEAN) AS prev_loom_plus_status,
         CAST(NULL AS STRING) AS prev_loom_plus_tier,
         CAST(NULL AS FLOAT64) AS prev_lifetime_value,
-        
+
         -- Transaction details
         CAST(ft.transaction_id AS INT64) AS transaction_id,
         ft.product_id AS product_id,
         ft.product_revenue,
         ft.product_quantity,
-        
+
         -- Customer segmentation at time of transaction
-        CASE 
+        CASE
             WHEN u.loom_plus_status = TRUE THEN 'Premium Customer'
-            WHEN u.lifetime_orders >= 5 THEN 'Loyal Customer' 
+            WHEN u.lifetime_orders >= 5 THEN 'Loyal Customer'
             WHEN u.lifetime_orders >= 2 THEN 'Repeat Customer'
             ELSE 'New Customer'
         END AS customer_state_at_time,
-        
+
         u.user_surrogate_key AS customer_version_key
-        
+
     FROM {{ ref('fct_transactions') }} ft
     -- Point-in-time join to get customer state at transaction date
     INNER JOIN {{ ref('dim_users') }} u ON ft.user_crm_id = u.user_crm_id
@@ -132,7 +132,7 @@ transaction_activity AS (
 ),
 
 customer_activity_consolidated AS (
-    SELECT 
+    SELECT
         user_crm_id,
         activity_type,
         activity_date,
@@ -154,32 +154,32 @@ customer_activity_consolidated AS (
         product_quantity,
         customer_state_at_time,
         customer_version_key,
-        
+
         -- Change type classification
-        CASE 
-            WHEN activity_type = 'profile_change' AND prev_city IS NOT NULL AND prev_city != customer_city 
+        CASE
+            WHEN activity_type = 'profile_change' AND prev_city IS NOT NULL AND prev_city != customer_city
                 THEN 'Location Change'
-            WHEN activity_type = 'profile_change' AND prev_loom_plus_status IS NOT NULL AND prev_loom_plus_status != loom_plus_status 
+            WHEN activity_type = 'profile_change' AND prev_loom_plus_status IS NOT NULL AND prev_loom_plus_status != loom_plus_status
                 THEN 'Loom+ Status Change'
-            WHEN activity_type = 'profile_change' AND prev_loom_plus_tier IS NOT NULL AND prev_loom_plus_tier != loom_plus_tier 
+            WHEN activity_type = 'profile_change' AND prev_loom_plus_tier IS NOT NULL AND prev_loom_plus_tier != loom_plus_tier
                 THEN 'Loom+ Tier Change'
-            WHEN activity_type = 'profile_change' AND prev_lifetime_value IS NOT NULL AND lifetime_value > prev_lifetime_value 
+            WHEN activity_type = 'profile_change' AND prev_lifetime_value IS NOT NULL AND lifetime_value > prev_lifetime_value
                 THEN 'Value Increase'
             WHEN activity_type = 'transaction' THEN 'Purchase'
             ELSE 'Other Change'
         END AS change_type
-        
+
     FROM customer_profile_changes
     WHERE activity_type = 'profile_change' AND (
-        prev_city IS NOT NULL OR 
-        prev_loom_plus_status IS NOT NULL OR 
-        prev_loom_plus_tier IS NOT NULL OR 
+        prev_city IS NOT NULL OR
+        prev_loom_plus_status IS NOT NULL OR
+        prev_loom_plus_tier IS NOT NULL OR
         prev_lifetime_value IS NOT NULL
     )  -- Only show actual changes, not initial records
-    
+
     UNION ALL
-    
-    SELECT 
+
+    SELECT
         user_crm_id,
         activity_type,
         activity_date,
@@ -206,36 +206,36 @@ customer_activity_consolidated AS (
 ),
 
 final_mart AS (
-    SELECT 
+    SELECT
         ca.*,
-        
+
         -- Add date dimension context
         d.year AS activity_year,
         d.quarter AS activity_quarter,
         d.month AS activity_month,
         d.day_of_week AS activity_day_of_week,
         d.is_weekend AS activity_is_weekend,
-        
+
         -- Add product context for transactions
         b.brand_name AS product_brand,
         mc.main_category_name AS product_category,
         p.list_price AS product_list_price,
-        
+
         -- Customer journey metrics
         ROW_NUMBER() OVER (PARTITION BY ca.user_crm_id ORDER BY ca.activity_timestamp) AS customer_activity_sequence,
-        
+
         -- Time since last activity
         LAG(ca.activity_date) OVER (PARTITION BY ca.user_crm_id ORDER BY ca.activity_timestamp) AS prev_activity_date,
         DATE_DIFF(ca.activity_date, LAG(ca.activity_date) OVER (PARTITION BY ca.user_crm_id ORDER BY ca.activity_timestamp), DAY) AS days_since_last_activity,
-        
+
         -- Customer tenure at time of activity
-        DATE_DIFF(ca.activity_date, 
-            FIRST_VALUE(ca.activity_date) OVER (PARTITION BY ca.user_crm_id ORDER BY ca.activity_timestamp), 
+        DATE_DIFF(ca.activity_date,
+            FIRST_VALUE(ca.activity_date) OVER (PARTITION BY ca.user_crm_id ORDER BY ca.activity_timestamp),
             DAY) AS customer_tenure_days,
-            
+
         -- Current timestamp for analysis
         CURRENT_TIMESTAMP() AS mart_updated_at
-        
+
     FROM customer_activity_consolidated ca
     LEFT JOIN {{ ref('dim_date') }} d ON ca.activity_date = d.date
     LEFT JOIN {{ ref('dim_products') }} p ON ca.product_id = p.product_id AND p.is_current = TRUE

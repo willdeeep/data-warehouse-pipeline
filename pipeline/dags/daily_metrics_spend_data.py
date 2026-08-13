@@ -47,8 +47,8 @@ DATASET = "warehouse"
 TEMP_TABLE = "temp_daily_metrics_spend_data"
 
 default_args = {
-    'owner': 'airflow',
-    'retries': 2,  # Retry failed tasks up to 2 times
+    "owner": "airflow",
+    "retries": 2,  # Retry failed tasks up to 2 times
 }
 
 SQL = """
@@ -158,14 +158,13 @@ order by
 """
 
 with DAG(
-    dag_id='daily_metrics_spend_data',
+    dag_id="daily_metrics_spend_data",
     default_args=default_args,
     start_date=datetime(2024, 1, 1),
     schedule=None,  # Set to your desired schedule
     catchup=False,
-    tags=['export', 'bigquery', 'gcs'],
+    tags=["export", "bigquery", "gcs"],
 ) as dag:
-
     bq_query = BigQueryInsertJobOperator(
         task_id="run_daily_metrics_spend_data_query",
         configuration={
@@ -180,17 +179,17 @@ with DAG(
                 "useLegacySql": False,
             }
         },
-        gcp_conn_id='gcp-default',
+        gcp_conn_id="gcp-default",
     )
 
     export_to_gcs = BigQueryToGCSOperator(
-        task_id='export_temp_table_to_gcs',
+        task_id="export_temp_table_to_gcs",
         source_project_dataset_table=f"{PROJECT_ID}.{DATASET}.{TEMP_TABLE}",
         destination_cloud_storage_uris=[
-            'gs://daily-metrics-spend-data/daily_metrics_spend_data_{{ ds }}.csv'
+            "gs://daily-metrics-spend-data/daily_metrics_spend_data_{{ ds }}.csv"
         ],
-        export_format='CSV',
-        gcp_conn_id='gcp-default',
+        export_format="CSV",
+        gcp_conn_id="gcp-default",
     )
 
     bq_query >> export_to_gcs

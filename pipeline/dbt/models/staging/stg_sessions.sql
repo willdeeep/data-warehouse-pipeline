@@ -24,7 +24,7 @@ GRAIN:
 
 SESSION AGGREGATION:
     - start_date: MIN(date) for sessions spanning multiple dates
-    - end_date: MAX(date) for sessions spanning multiple dates  
+    - end_date: MAX(date) for sessions spanning multiple dates
     - session_count: COUNT of original rows with the same session_id
     - Other fields: ANY_VALUE to maintain consistency
 
@@ -57,7 +57,7 @@ ROW DEFINITION:
 
 
 WITH cleaned_sessions AS (
-    SELECT 
+    SELECT
         -- Date field
         date,
         -- Primary identifiers
@@ -65,40 +65,40 @@ WITH cleaned_sessions AS (
         user_cookie_id,
         SAFE_CAST(user_crm_id AS INTEGER) as user_crm_id,
         -- Geographic information
-        city, 
+        city,
         -- Traffic source with standardization
-        CASE 
+        CASE
             -- Google platforms (search engines)
             WHEN LOWER(TRIM(traffic_source)) IN ('google', 'youtube.com', 'youtube', 'google.com') THEN 'google'
-            
-            -- Meta/Facebook platforms  
+
+            -- Meta/Facebook platforms
             WHEN LOWER(TRIM(traffic_source)) IN (
-                'meta', 'facebook', 'facebook.com', 'l.facebook.com', 
-                'lm.facebook.com', 'm.facebook.com', 'instagram', 
+                'meta', 'facebook', 'facebook.com', 'l.facebook.com',
+                'lm.facebook.com', 'm.facebook.com', 'instagram',
                 'instagram.com', 'l.instagram.com'
             ) THEN 'meta'
-            
+
             -- TikTok platforms
             WHEN LOWER(TRIM(traffic_source)) IN ('tiktok', 'tiktok.com') THEN 'tiktok'
-            
+
             -- RTB House and affiliate/programmatic platforms
             WHEN LOWER(TRIM(traffic_source)) IN ('rtbhouse', 'tradedoubler', 'awin', 'tradedesk') THEN 'rtbhouse'
-            
+
             -- Criteo and other programmatic/retargeting platforms
             WHEN LOWER(TRIM(traffic_source)) IN ('criteo', 'dv360', 'taboola') THEN 'criteo'
 
             WHEN LOWER(TRIM(traffic_source)) IN ('twitter', 'twitter.com') THEN 'twitter'
-            
+
             -- Pass through all other traffic sources unchanged
             ELSE SAFE_CAST(traffic_source AS STRING)
         END AS traffic_source,
         -- Traffic medium safe casting
         SAFE_CAST(traffic_medium AS STRING) as traffic_medium,
-        -- Device category  
+        -- Device category
         device_category,
         -- Add metadata
         CURRENT_TIMESTAMP as dbt_updated_at,
-        CURRENT_DATE as dbt_valid_from     
+        CURRENT_DATE as dbt_valid_from
     FROM {{ source('loom_sync', 'sessions') }}
     WHERE date IS NOT NULL
       AND session_id IS NOT NULL
@@ -106,17 +106,17 @@ WITH cleaned_sessions AS (
 ),
 
 aggregated_sessions AS (
-    SELECT 
+    SELECT
         -- Primary identifiers
         session_id,
-        
+
         -- Date aggregation: min as start_date, max as end_date
         MIN(date) AS start_date,
         MAX(date) AS end_date,
-        
+
         -- Session count: count of rows with the same session_id
         COUNT(*) AS session_count,
-        
+
         -- Take first non-null values for other fields (or most recent)
         ANY_VALUE(user_cookie_id) AS user_cookie_id,
         ANY_VALUE(user_crm_id) AS user_crm_id,
@@ -124,11 +124,11 @@ aggregated_sessions AS (
         ANY_VALUE(traffic_source) AS traffic_source,
         ANY_VALUE(traffic_medium) AS traffic_medium,
         ANY_VALUE(device_category) AS device_category,
-        
+
         -- Metadata - use max timestamps to get most recent
         MAX(dbt_updated_at) AS dbt_updated_at,
         MIN(dbt_valid_from) AS dbt_valid_from
-        
+
     FROM cleaned_sessions
     GROUP BY session_id
 )

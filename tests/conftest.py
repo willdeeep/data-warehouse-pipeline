@@ -5,11 +5,11 @@ This module provides common test fixtures, configurations, and utilities
 used across all test modules in the project.
 """
 
-from pathlib import Path
-from unittest.mock import Mock, patch
 import os
 import sys
 import tempfile
+from pathlib import Path
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -18,14 +18,14 @@ sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(PROJECT_ROOT / "pipeline" / "dags"))
 
 # Set up test database configuration before importing Airflow
-os.environ.setdefault('AIRFLOW__CORE__SQL_ALCHEMY_CONN', 'sqlite:////tmp/test_airflow.db')
-os.environ.setdefault('AIRFLOW__CORE__EXECUTOR', 'SequentialExecutor')
-os.environ.setdefault('AIRFLOW__CORE__LOAD_EXAMPLES', 'False')
-os.environ.setdefault('AIRFLOW__CORE__UNIT_TEST_MODE', 'True')
+os.environ.setdefault("AIRFLOW__CORE__SQL_ALCHEMY_CONN", "sqlite:////tmp/test_airflow.db")
+os.environ.setdefault("AIRFLOW__CORE__EXECUTOR", "SequentialExecutor")
+os.environ.setdefault("AIRFLOW__CORE__LOAD_EXAMPLES", "False")
+os.environ.setdefault("AIRFLOW__CORE__UNIT_TEST_MODE", "True")
 
 # Now import Airflow components after setting up the environment
 try:
-    from airflow.models import DagBag, Connection
+    from airflow.models import Connection, DagBag
 except ImportError:
     # If Airflow imports fail, create mock objects
     DagBag = Mock
@@ -36,7 +36,9 @@ def pytest_configure(config):
     """Configure pytest for different environments."""
     # Add all custom markers to avoid warnings
     config.addinivalue_line("markers", "unit: Unit tests for individual functions/classes")
-    config.addinivalue_line("markers", "integration: Integration tests requiring external dependencies")
+    config.addinivalue_line(
+        "markers", "integration: Integration tests requiring external dependencies"
+    )
     config.addinivalue_line("markers", "dag: DAG-specific tests")
     config.addinivalue_line("markers", "dbt: dbt model and project tests")
     config.addinivalue_line("markers", "performance: Performance and load tests")
@@ -54,11 +56,12 @@ def pytest_collection_modifyitems(config, items):
     """Modify test collection based on environment."""
     # Check if we're in CI environment
     is_ci = os.getenv("CI") == "true" or os.getenv("GITHUB_ACTIONS") == "true"
-    
+
     # Check if dbt is available
     dbt_available = False
     try:
         import subprocess
+
         result = subprocess.run(["dbt", "--version"], capture_output=True, timeout=5)
         dbt_available = result.returncode == 0
     except (FileNotFoundError, subprocess.TimeoutExpired):
@@ -72,11 +75,11 @@ def pytest_collection_modifyitems(config, items):
         # Skip tests marked for CI skipping when in CI
         if "ci_skip" in item.keywords and is_ci:
             item.add_marker(skip_ci)
-        
+
         # Skip database-dependent tests in CI (they use in-memory DB)
         if "requires_db" in item.keywords and is_ci:
             item.add_marker(skip_no_db)
-        
+
         # Skip dbt tests when dbt CLI is not available
         if "requires_dbt" in item.keywords and not dbt_available:
             item.add_marker(skip_no_dbt)
@@ -97,17 +100,18 @@ def setup_airflow_db():
     os.environ["DBT_ROOT_PATH"] = str(PROJECT_ROOT / "pipeline" / "dbt")
 
     # Patch database operations at the module level
-    with patch('airflow.models.base.Base.metadata'):
-        with patch('airflow.settings.engine'):
+    with patch("airflow.models.base.Base.metadata"):
+        with patch("airflow.settings.engine"):
             # DO NOT initialize any database - all tests should work without DB
             print("✅ Configured Airflow for DB-free testing")
             yield
     # No cleanup needed - no DB was created
 
+
 # ============================================================================
-    # AIRFLOW TESTING FIXTURES
+# AIRFLOW TESTING FIXTURES
 # ============================================================================
-    # These fixtures provide pre-configured Airflow components for testing
+# These fixtures provide pre-configured Airflow components for testing
 # without requiring a full Airflow database setup.
 
 
@@ -116,21 +120,19 @@ def dag_bag():
     """Provide a DagBag instance for testing with better CI compatibility."""
     # Create DagBag without database dependencies
     is_ci = os.getenv("CI") == "true" or os.getenv("GITHUB_ACTIONS") == "true"
-    
+
     if is_ci:
         # In CI, use minimal mocking to avoid DB issues
-        with patch('airflow.models.dag.DagModel.get_current', return_value=None):
+        with patch("airflow.models.dag.DagModel.get_current", return_value=None):
             dag_bag = DagBag(
                 dag_folder=str(PROJECT_ROOT / "pipeline" / "dags"),
                 include_examples=False,
-                safe_mode=True  # Enable safe mode in CI
+                safe_mode=True,  # Enable safe mode in CI
             )
             return dag_bag
     else:
         # Local development - allow normal DAG loading
-        dag_bag = DagBag(
-            dag_folder=str(PROJECT_ROOT / "pipeline" / "dags"),
-            include_examples=False)
+        dag_bag = DagBag(dag_folder=str(PROJECT_ROOT / "pipeline" / "dags"), include_examples=False)
         return dag_bag
 
 
@@ -149,7 +151,7 @@ def mock_gcp_connection():
     conn = Connection(
         conn_id="gcp-default",
         conn_type="google_cloud_platform",
-        description="Mock GCP connection for testing"
+        description="Mock GCP connection for testing",
     )
 
     with patch("airflow.hooks.base.BaseHook.get_connection", return_value=conn):
@@ -170,6 +172,7 @@ def mock_bigquery_client():
     """Mock BigQuery client for testing."""
     try:
         import google.cloud.bigquery
+
         with patch("google.cloud.bigquery.Client") as mock_client:
             mock_instance = Mock()
             mock_client.return_value = mock_instance
@@ -211,10 +214,8 @@ def sample_dag_context():
         "run_id": "test_run_001",
         "task_instance": Mock(),
         "params": {},
-        "var": {
-            "json": Mock(return_value={}),
-            "value": Mock(return_value="test_value")
-        }
+        "var": {"json": Mock(return_value={}), "value": Mock(return_value="test_value")},
     }
+
 
 # End of conftest.py

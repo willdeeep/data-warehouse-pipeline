@@ -10,7 +10,7 @@ PURPOSE:
 
 USAGE:
     {{ generate_schema_docs() }}
-    
+
 FEATURES:
     - Extracts model descriptions from YAML files
     - Formats column descriptions for BigQuery
@@ -27,7 +27,7 @@ FEATURES:
             {% set table_description = current_model.description[:1024] %}
             {{ log("Adding table description: " ~ table_description, info=false) }}
         {% endif %}
-        
+
         {% for column in current_model.columns %}
             {% if column.description %}
                 {% set col_description = column.description[:1024] %}
@@ -75,7 +75,7 @@ PURPOSE:
 
 Model Details:
 - dbt Model: {{ model.name }}
-- Schema: {{ model.schema }}  
+- Schema: {{ model.schema }}
 - Materialized As: {{ config.get('materialized', 'view') }}
 - Generated: {{ current_timestamp }}
 - dbt Version: {{ dbt_version }}

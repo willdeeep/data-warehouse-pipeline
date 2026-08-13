@@ -5,7 +5,7 @@ MODEL: stg_product_attributes
 ===================================================================================
 
 PURPOSE:
-    Staging model for product catalog data with category hierarchies and 
+    Staging model for product catalog data with category hierarchies and
     attribute standardization for merchandise analysis.
 
 SOURCE:
@@ -31,7 +31,7 @@ DATA QUALITY:
     - Preserves brand and naming information
 
 ROW DEFINITION:
-    Each row represents a unique product with its brand, name, category 
+    Each row represents a unique product with its brand, name, category
     classifications, and gender targeting information.
 ===================================================================================
 */
@@ -46,11 +46,11 @@ WITH cleaned_product_attributes AS (
         item_main_category,
         item_sub_category,
         item_gender,
-        
+
         -- Add metadata
         CURRENT_TIMESTAMP as dbt_updated_at,
         CURRENT_DATE as dbt_valid_from
-        
+
     FROM {{ source('loom_sync', 'productattributes') }}
     WHERE item_id IS NOT NULL
 )

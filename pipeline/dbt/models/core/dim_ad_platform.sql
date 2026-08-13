@@ -42,11 +42,11 @@ platform_dimension AS (
     SELECT
         -- Primary key
         {{ generate_int_surrogate_key(['platform_name']) }} AS platform_key,
-        
+
         platform_name,
-        
+
         -- Classify channel type based on platform
-        CASE 
+        CASE
             WHEN LOWER(platform_name) IN ('google ads', 'bing ads', 'yahoo ads') THEN 'Search'
             WHEN LOWER(platform_name) IN ('facebook', 'instagram', 'twitter', 'linkedin', 'tiktok', 'snapchat', 'pinterest') THEN 'Paid Social'
             WHEN LOWER(platform_name) IN ('google display', 'programmatic', 'dsp', 'demand side platform') THEN 'DSP'
@@ -55,11 +55,11 @@ platform_dimension AS (
             WHEN LOWER(platform_name) IN ('email', 'newsletter') THEN 'Email'
             ELSE 'Other'
         END AS channel_type,
-        
+
         -- dbt metadata
         last_seen_at AS dbt_updated_at,
         first_seen_at AS dbt_created_at
-        
+
     FROM platform_data
 )
 

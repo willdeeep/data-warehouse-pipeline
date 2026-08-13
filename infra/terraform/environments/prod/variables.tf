@@ -19,4 +19,3 @@ variable "state_bucket_name" {
   type        = string
   description = "Globally-unique GCS bucket name for Terraform remote state."
 }
-

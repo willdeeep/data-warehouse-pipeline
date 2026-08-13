@@ -4,12 +4,12 @@ Example DAGs test. This test ensures that all Dags have tags, retries set to two
 of your DAGs. Feel free to add and remove tests.
 """
 
-from contextlib import contextmanager
 import logging
 import os
+from contextlib import contextmanager
 
-from airflow.models import DagBag
 import pytest
+from airflow.models import DagBag
 
 
 @contextmanager
@@ -59,6 +59,7 @@ def get_import_errors():
     """
     # Get the project root directory and point to the dags folder
     import pathlib
+
     project_root = pathlib.Path(__file__).parent.parent.parent
     dags_folder = str(project_root / "dags")
 
@@ -70,8 +71,9 @@ def get_import_errors():
 
         # prepend (None, None) to ensure that a test object is always
         # created even if it's a no op.
-        return [(None, None)] + [(strip_path_prefix(k), v.strip())
-                                 for k, v in dag_bag.import_errors.items()]
+        return [(None, None)] + [
+            (strip_path_prefix(k), v.strip()) for k, v in dag_bag.import_errors.items()
+        ]
 
 
 def get_dags():
@@ -92,6 +94,7 @@ def get_dags():
     """
     # Get the project root directory and point to the dags folder
     import pathlib
+
     project_root = pathlib.Path(__file__).parent.parent.parent
     dags_folder = str(project_root / "dags")
 
@@ -101,21 +104,19 @@ def get_dags():
     def strip_path_prefix(path):
         return os.path.relpath(path, str(project_root))
 
-    return [(k, v, strip_path_prefix(v.fileloc))
-            for k, v in dag_bag.dags.items()]
+    return [(k, v, strip_path_prefix(v.fileloc)) for k, v in dag_bag.dags.items()]
+
 
 # ============================================================================
-    # PARAMETRIZED IMPORT ERROR TESTS
+# PARAMETRIZED IMPORT ERROR TESTS
 # ============================================================================
-    # These tests verify that all DAG files can be imported without errors.
+# These tests verify that all DAG files can be imported without errors.
 # Each import error is tested individually to provide specific failure
 # information.
 
 
 @pytest.mark.parametrize(
     "rel_path,rv", get_import_errors(), ids=[x[0] for x in get_import_errors()]
-
-
 )
 def test_file_imports(rel_path, rv):
     """Test for import errors on a file"""
@@ -124,10 +125,29 @@ def test_file_imports(rel_path, rv):
 
 
 APPROVED_TAGS = {
-    'loom_warehouse', 'dbt_task_group', 'export', 'bigquery', 'gcs',
-    'enhanced', 'slack', 'dev', 'test', 'production', 'etl', 'warehouse',
-    'example', 'dbt', 'metrics', 'analytics', 'daily', 'weekly', 'ebay',
-    'slack_notifications', 'manual', 'full_refresh', 'update'
+    "loom_warehouse",
+    "dbt_task_group",
+    "export",
+    "bigquery",
+    "gcs",
+    "enhanced",
+    "slack",
+    "dev",
+    "test",
+    "production",
+    "etl",
+    "warehouse",
+    "example",
+    "dbt",
+    "metrics",
+    "analytics",
+    "daily",
+    "weekly",
+    "ebay",
+    "slack_notifications",
+    "manual",
+    "full_refresh",
+    "update",
 }
 
 # ============================================================================
@@ -137,9 +157,7 @@ APPROVED_TAGS = {
 # proper tagging, retry configuration, and other required properties.
 
 
-@pytest.mark.parametrize(
-    "dag_id,dag,fileloc", get_dags(), ids=[x[2] for x in get_dags()]
-)
+@pytest.mark.parametrize("dag_id,dag,fileloc", get_dags(), ids=[x[2] for x in get_dags()])
 def test_dag_tags(dag_id, dag, fileloc):
     """
     test if a DAG is tagged and if those TAGs are in the approved list
@@ -149,14 +167,12 @@ def test_dag_tags(dag_id, dag, fileloc):
         assert not set(dag.tags) - APPROVED_TAGS
 
 
-@pytest.mark.parametrize(
-    "dag_id,dag, fileloc", get_dags(), ids=[x[2] for x in get_dags()]
-)
+@pytest.mark.parametrize("dag_id,dag, fileloc", get_dags(), ids=[x[2] for x in get_dags()])
 def test_dag_retries(dag_id, dag, fileloc):
     """
     test if a DAG has retries set
     """
     retries = dag.default_args.get("retries", None)
-    assert (
-        retries is not None and retries >= 1
-    ), f"{dag_id} in {fileloc} must have task retries >= 1. Currently: {retries}"
+    assert retries is not None and retries >= 1, (
+        f"{dag_id} in {fileloc} must have task retries >= 1. Currently: {retries}"
+    )

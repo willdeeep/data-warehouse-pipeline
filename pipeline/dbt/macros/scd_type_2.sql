@@ -14,7 +14,7 @@ It creates new records when changes are detected and maintains valid_from/valid_
 
 Parameters:
 - target_relation: The target table/model relation
-- unique_key: The business key to identify unique records  
+- unique_key: The business key to identify unique records
 - updated_at_column: Column to check for freshness (optional)
 - check_columns: List of columns to monitor for changes (default: all except metadata)
 - invalidate_hard_deletes: Whether to mark deleted records as invalid (default: true)
@@ -30,7 +30,7 @@ Parameters:
     {%- set check_cols_csv = check_columns | join(', ') -%}
 
     WITH source_data AS (
-        SELECT 
+        SELECT
             *,
             CURRENT_TIMESTAMP() AS dbt_updated_at,
             {{ dbt_utils.surrogate_key([unique_key]) }} AS dbt_scd_id
@@ -38,9 +38,9 @@ Parameters:
     ),
 
     {% if is_incremental() %}
-    
+
     target_data AS (
-        SELECT 
+        SELECT
             *
         FROM {{ target_relation }}
         WHERE is_current = TRUE
@@ -48,18 +48,18 @@ Parameters:
 
     -- Identify new and changed records
     source_with_changes AS (
-        SELECT 
+        SELECT
             s.*,
-            CASE 
+            CASE
                 WHEN t.{{ unique_key }} IS NULL THEN 'insert'
-                WHEN {{ dbt_utils.generate_surrogate_key(check_columns) }} != 
+                WHEN {{ dbt_utils.generate_surrogate_key(check_columns) }} !=
                      t.{{ unique_key }}_checksum
                 THEN 'update'
                 ELSE 'no_change'
             END AS change_type
         FROM source_data s
         LEFT JOIN (
-            SELECT 
+            SELECT
                 *,
                 {{ dbt_utils.generate_surrogate_key(check_columns) }} AS {{ unique_key }}_checksum
             FROM target_data
@@ -68,7 +68,7 @@ Parameters:
 
     -- Records to insert (new and changed)
     records_to_insert AS (
-        SELECT 
+        SELECT
             *,
             CURRENT_TIMESTAMP() AS valid_from,
             CAST(NULL AS TIMESTAMP) AS valid_to,
@@ -79,13 +79,13 @@ Parameters:
 
     -- Historical records (invalidate changed records)
     historical_records AS (
-        SELECT 
+        SELECT
             t.*,
-            CASE 
+            CASE
                 WHEN s.change_type = 'update' THEN FALSE
                 ELSE t.is_current
             END AS is_current,
-            CASE 
+            CASE
                 WHEN s.change_type = 'update' THEN CURRENT_TIMESTAMP()
                 ELSE t.valid_to
             END AS valid_to
@@ -104,7 +104,7 @@ Parameters:
 
     -- Initial load
     final AS (
-        SELECT 
+        SELECT
             *,
             CURRENT_TIMESTAMP() AS valid_from,
             CAST(NULL AS TIMESTAMP) AS valid_to,

@@ -48,15 +48,13 @@ WITH cleaned_transaction_items AS (
         SAFE_CAST(product_id as INTEGER) as product_id,        -- product SKU
         ROUND(SAFE_CAST(item_price as FLOAT64), 2) as product_price,  -- Normalize to product_price
         SAFE_CAST(item_quantity as INTEGER) as product_quantity,  -- always 1 (one unit per row)
-        
+
         -- Add metadata
         CURRENT_TIMESTAMP as dbt_updated_at,
         CURRENT_DATE as dbt_valid_from
-        
+
     FROM {{ source('loom_sync', 'transactionsanditems') }}
     WHERE date IS NOT NULL
 )
 
 SELECT * FROM cleaned_transaction_items
-
-

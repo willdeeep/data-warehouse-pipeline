@@ -30,9 +30,9 @@ KEY ATTRIBUTES:
 WITH medium_combinations AS (
     SELECT DISTINCT
         traffic_medium AS medium,
-        
+
         -- Standardize medium categories for reporting
-        CASE 
+        CASE
             WHEN LOWER(traffic_medium) IN ('organic') THEN 'Organic'
             WHEN LOWER(traffic_medium) IN ('cpc', 'ppc', 'paid') THEN 'Paid Search'
             WHEN LOWER(traffic_medium) IN ('social', 'social-network', 'social-media') THEN 'Social'
@@ -45,11 +45,11 @@ WITH medium_combinations AS (
             WHEN LOWER(traffic_medium) IN ('sms', 'text') THEN 'SMS'
             ELSE 'Other'
         END AS medium_category,
-        
+
         -- Get first occurrence timestamp for metadata
         MIN(dbt_valid_from) AS first_seen_at,
         MAX(dbt_updated_at) AS last_seen_at
-        
+
     FROM {{ ref('stg_sessions') }}
     WHERE traffic_medium IS NOT NULL
     GROUP BY 1
@@ -59,14 +59,14 @@ medium_dimension AS (
     SELECT
         -- Primary key: simple integer ID
         ROW_NUMBER() OVER (ORDER BY medium) AS medium_key,
-        
+
         medium,
         medium_category,
-        
+
         -- dbt metadata
         last_seen_at AS dbt_updated_at,
         first_seen_at AS dbt_created_at
-        
+
     FROM medium_combinations
 )
 

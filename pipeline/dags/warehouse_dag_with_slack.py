@@ -40,22 +40,23 @@ Version: 2.0
 Last Updated: June 2025
 """
 
-from datetime import datetime, timedelta
-from pathlib import Path
 import json
 import os
+from datetime import datetime, timedelta
+from pathlib import Path
 
-from cosmos.config import ProfileConfig
-from cosmos.operators import DbtBuildOperator, DbtTestOperator, DbtDocsGCSOperator
 import requests
 from airflow.decorators import dag
 from airflow.operators.bash import BashOperator
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
 from airflow.utils.trigger_rule import TriggerRule
+from cosmos.config import ProfileConfig
+from cosmos.operators import DbtBuildOperator, DbtDocsGCSOperator, DbtTestOperator
 
 try:
     from airflow.models import Variable
+
     SLACK_PROVIDER_AVAILABLE = True
 except ImportError:
     SLACK_PROVIDER_AVAILABLE = False
@@ -99,8 +100,7 @@ SLACK_WEBHOOK_URL = get_slack_webhook_url()
 DEFAULT_ARGS = {
     "retries": 2,  # Retry failed tasks twice before marking as failed
     "concurrency": 3,  # Limit concurrent task execution to prevent resource conflicts
-    "execution_timeout": timedelta(
-        hours=2),
+    "execution_timeout": timedelta(hours=2),
     # 2 hour timeout for individual tasks
     # Wait 5 minutes between retry attempts
     "retry_delay": timedelta(minutes=5),
@@ -135,65 +135,46 @@ def send_slack_notification(**kwargs) -> None:
         return
 
     # Extract task instance details for notification context
-    task_instance = kwargs['task_instance']
-    dag_id = kwargs['dag'].dag_id
-    execution_date = kwargs['execution_date']
+    task_instance = kwargs["task_instance"]
+    dag_id = kwargs["dag"].dag_id
+    execution_date = kwargs["execution_date"]
 
     # Create structured Slack message using Block Kit for rich formatting
     message = {
         "text": "🚨 dbt Data Quality Tests Failed",  # Fallback text for basic clients
         "blocks": [
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": "🚨 dbt Data Quality Alert"
-                }
-            },
+            {"type": "header", "text": {"type": "plain_text", "text": "🚨 dbt Data Quality Alert"}},
             {
                 "type": "section",
                 "fields": [  # Two-column layout for key information
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*DAG:* {dag_id}"
-                    },
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Task:* {task_instance.task_id}"
-                    },
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Execution Date:* {execution_date}"
-                    },
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Status:* Failed ❌"
-                    }
-                ]
+                    {"type": "mrkdwn", "text": f"*DAG:* {dag_id}"},
+                    {"type": "mrkdwn", "text": f"*Task:* {task_instance.task_id}"},
+                    {"type": "mrkdwn", "text": f"*Execution Date:* {execution_date}"},
+                    {"type": "mrkdwn", "text": "*Status:* Failed ❌"},
+                ],
             },
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
                     "text": """Data quality tests failed in the warehouse pipeline.\n
-                    Please check the Airflow logs for detailed error information."""
-                }
+                    Please check the Airflow logs for detailed error information.""",
+                },
             },
             {
                 "type": "actions",
                 "elements": [
                     {
                         "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "text": "View in Airflow"
-                        },
-                        "url": (f"https://clpqv4fx901t601k2zd9ykz3i.astronomer.run/"
-                               f"dy4j071b/dags/{dag_id}/grid")
+                        "text": {"type": "plain_text", "text": "View in Airflow"},
+                        "url": (
+                            f"https://clpqv4fx901t601k2zd9ykz3i.astronomer.run/"
+                            f"dy4j071b/dags/{dag_id}/grid"
+                        ),
                     }
-                ]
-            }
-        ]
+                ],
+            },
+        ],
     }
 
     # Send to Slack using requests (fallback method that works without Slack
@@ -202,12 +183,11 @@ def send_slack_notification(**kwargs) -> None:
         response = requests.post(
             SLACK_WEBHOOK_URL,
             data=json.dumps(message),
-            headers={'Content-Type': 'application/json'},
-            timeout=10  # Prevent hanging requests
+            headers={"Content-Type": "application/json"},
+            timeout=10,  # Prevent hanging requests
         )
         response.raise_for_status()  # Raise exception for HTTP errors
-        print(f"✅ Slack notification sent successfully. "
-              f"Status: {response.status_code}")
+        print(f"✅ Slack notification sent successfully. Status: {response.status_code}")
     except (requests.RequestException, ValueError) as e:
         # Log error but don't fail the task - notifications are supplementary
         # to main pipeline
@@ -239,64 +219,76 @@ def send_success_notification(**kwargs) -> None:
         return
 
     # Extract execution context for notification details
-    dag_id = kwargs['dag'].dag_id
-    execution_date = kwargs['execution_date']
+    dag_id = kwargs["dag"].dag_id
+    execution_date = kwargs["execution_date"]
 
     # Build success notification with positive messaging and celebration emojis
-    message = {"text": "✅ Warehouse Pipeline Completed Successfully",
-               "blocks": [{"type": "header",
-                           "text": {"type": "plain_text",
-                                    "text": "✅ Warehouse Pipeline Success"}},
-                          {"type": "section",
-                           "fields": [{"type": "mrkdwn",
-                                       "text": f"*DAG:* {dag_id}"},
-                                      {"type": "mrkdwn",
-                                       "text": f"*Execution Date:* {execution_date}"}]},
-                          {"type": "section",
-                           "text": {"type": "mrkdwn",
-                                    "text": ("🎉 All models built, tests passed, "
-                                            "documentation updated successfully!")}},
-                          {"type": "section",
-                           "text": {"type": "mrkdwn",
-                                    "text": """*📈 Pipeline Metrics:*\n
+    message = {
+        "text": "✅ Warehouse Pipeline Completed Successfully",
+        "blocks": [
+            {
+                "type": "header",
+                "text": {"type": "plain_text", "text": "✅ Warehouse Pipeline Success"},
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {"type": "mrkdwn", "text": f"*DAG:* {dag_id}"},
+                    {"type": "mrkdwn", "text": f"*Execution Date:* {execution_date}"},
+                ],
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": (
+                        "🎉 All models built, tests passed, documentation updated successfully!"
+                    ),
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": """*📈 Pipeline Metrics:*\n
                     • Models: 27 built successfully\n
                     • Tests: 97 executed (92 passed, 5 expected warnings)\n
                     • Data: 634K+ transactions processed\n• Revenue: $17.6M validated\n
-                    • Documentation: Updated in GCS"""}}]}
+                    • Documentation: Updated in GCS""",
+                },
+            },
+        ],
+    }
 
     # Send success notification with comprehensive error handling
     try:
         response = requests.post(
             SLACK_WEBHOOK_URL,
             data=json.dumps(message),
-            headers={'Content-Type': 'application/json'},
-            timeout=10  # Prevent hanging requests
+            headers={"Content-Type": "application/json"},
+            timeout=10,  # Prevent hanging requests
         )
         response.raise_for_status()  # Raise exception for HTTP errors
-        print(
-            f"✅ Success notification sent to Slack. Status: {response.status_code}")
+        print(f"✅ Success notification sent to Slack. Status: {response.status_code}")
     except (requests.RequestException, ValueError) as e:
         # Log error but don't fail the task - notifications are supplementary
         print("❌ Failed to send success notification: %s", str(e))
+
 
 # DAG Configuration with Enhanced Monitoring and Notifications
 
 
 @dag(
     # Unique identifier for this Slack-enabled pipeline
-    dag_id='warehouse_dag_with_slack',
+    dag_id="warehouse_dag_with_slack",
     start_date=datetime(2023, 12, 11),  # Initial DAG execution date
     schedule="0 */2 * * *",  # Run every 2 hours (cron expression)
     catchup=False,  # Don't run historical instances on deployment
-    tags=[
-        'loom_warehouse',
-        'slack_notifications',
-        'enhanced',
-        'production'],
+    tags=["loom_warehouse", "slack_notifications", "enhanced", "production"],
     # Organization tags
     default_args=DEFAULT_ARGS,  # Apply retry and timeout settings to all tasks
     description="Enhanced warehouse pipeline with comprehensive Slack notifications, "
-                "documentation generation, GCS publishing, and intelligent error handling.",
+    "documentation generation, GCS publishing, and intelligent error handling.",
     max_active_runs=1,  # Prevent overlapping DAG executions
     doc_md=__doc__,  # Use module docstring for DAG documentation
 )
@@ -322,8 +314,8 @@ def warehouse_dag_with_slack():
 
     # Step 1: Compile and validate dbt project configuration
     compile_dbt = BashOperator(
-        task_id='compile_dbt',
-        bash_command=f'cd {DBT_ROOT_PATH} && dbt compile --target prod --profiles-dir .',
+        task_id="compile_dbt",
+        bash_command=f"cd {DBT_ROOT_PATH} && dbt compile --target prod --profiles-dir .",
         doc_md="""
         **dbt Project Compilation & Validation**
 
@@ -343,11 +335,11 @@ def warehouse_dag_with_slack():
 
     # Step 2: Build all models, seeds, and snapshots in dependency order
     build_warehouse = DbtBuildOperator(
-        task_id='build_warehouse',
+        task_id="build_warehouse",
         project_dir=DBT_ROOT_PATH,
         profile_config=ProfileConfig(
-            profile_name='loom',
-            target_name='prod',
+            profile_name="loom",
+            target_name="prod",
             profiles_yml_filepath=DBT_ROOT_PATH / "profiles.yml",
         ),
         doc_md="""
@@ -367,11 +359,11 @@ def warehouse_dag_with_slack():
 
     # Step 3: Execute comprehensive data quality testing suite
     test_data_quality = DbtTestOperator(
-        task_id='test_data_quality',
+        task_id="test_data_quality",
         project_dir=DBT_ROOT_PATH,
         profile_config=ProfileConfig(
-            profile_name='loom',
-            target_name='prod',
+            profile_name="loom",
+            target_name="prod",
             profiles_yml_filepath=DBT_ROOT_PATH / "profiles.yml",
         ),
         # Add failure callback for immediate Slack notification
@@ -397,7 +389,7 @@ def warehouse_dag_with_slack():
 
     # Step 4: Send immediate Slack notification on test failure
     notify_test_failure = PythonOperator(
-        task_id='notify_test_failure',
+        task_id="notify_test_failure",
         python_callable=send_slack_notification,
         trigger_rule=TriggerRule.ONE_FAILED,  # Only run if upstream task failed
         # Context is automatically provided in Airflow 2.0+
@@ -417,17 +409,17 @@ def warehouse_dag_with_slack():
 
     # Step 5: Generate and publish documentation to GCS (only if tests pass)
     generate_docs = DbtDocsGCSOperator(
-        task_id='generate_docs',
+        task_id="generate_docs",
         project_dir=DBT_ROOT_PATH,
         profile_config=ProfileConfig(
-            profile_name='loom',
-            target_name='prod',
+            profile_name="loom",
+            target_name="prod",
             profiles_yml_filepath=DBT_ROOT_PATH / "profiles.yml",
         ),
-        connection_id='gcp-default',
+        connection_id="gcp-default",
         # GCS connection for documentation storage (RFC3986 compliant)
         bucket_name=DAG_LOGS_BUCKET,  # Using your existing GCS bucket
-        folder_dir='dbt-docs',  # Folder within bucket for documentation files
+        folder_dir="dbt-docs",  # Folder within bucket for documentation files
         trigger_rule=TriggerRule.NONE_FAILED,  # Only run if no upstream failures
         doc_md="""
         **Documentation Generation & Publishing**
@@ -446,7 +438,7 @@ def warehouse_dag_with_slack():
 
     # Step 6: Send success notification for complete pipeline success
     notify_success = PythonOperator(
-        task_id='notify_success',
+        task_id="notify_success",
         python_callable=send_success_notification,
         trigger_rule=TriggerRule.NONE_FAILED,  # Only run if everything succeeded
         # Context is automatically provided in Airflow 2.0+
@@ -466,7 +458,7 @@ def warehouse_dag_with_slack():
 
     # Step 7: Cleanup task that always runs for resource management
     cleanup = EmptyOperator(
-        task_id='cleanup',
+        task_id="cleanup",
         # Run regardless of upstream status
         trigger_rule=TriggerRule.NONE_FAILED_MIN_ONE_SUCCESS,
         doc_md="""

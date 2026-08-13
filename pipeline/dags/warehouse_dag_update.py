@@ -1,7 +1,7 @@
 """
 Enhanced Warehouse Data Pipeline for Manual Full Refresh
 
-This DAG implements a manual-only warehouse rebuild pipeline designed for 
+This DAG implements a manual-only warehouse rebuild pipeline designed for
 handling structural changes to dbt models that require full refresh to avoid
 materialization conflicts. The pipeline follows a dev-first approach:
 
@@ -38,10 +38,10 @@ Version: 3.0 - Manual Full Refresh
 Last Updated: July 2025
 """
 
-from datetime import datetime, timedelta
-from pathlib import Path
 import json
 import os
+from datetime import datetime, timedelta
+from pathlib import Path
 
 import requests
 from airflow.decorators import dag
@@ -52,9 +52,7 @@ from airflow.utils.trigger_rule import TriggerRule
 
 DEFAULT_DBT_ROOT_PATH = Path(__file__).parent / "dbt"
 DBT_ROOT_PATH = Path(os.getenv("DBT_ROOT_PATH", DEFAULT_DBT_ROOT_PATH))
-SLACK_WEBHOOK_URL = os.getenv(
-    "SLACK_WEBHOOK_URL",
-    "")  # Slack webhook for notifications
+SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL", "")  # Slack webhook for notifications
 
 
 # Default task arguments with retry logic
@@ -89,67 +87,46 @@ def send_slack_notification(**kwargs) -> None:
         return
 
     # Extract task execution context for notification details
-    task_instance = kwargs['task_instance']
-    dag_id = kwargs['dag'].dag_id
-    execution_date = kwargs['execution_date']
+    task_instance = kwargs["task_instance"]
+    dag_id = kwargs["dag"].dag_id
+    execution_date = kwargs["execution_date"]
 
     # Build structured Slack message using Slack Block Kit for rich formatting
     message = {
         "text": "🚨 dbt Data Quality Tests Failed",  # Fallback text for notifications
         "blocks": [
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": "🚨 dbt Data Quality Alert"
-                }
-            },
+            {"type": "header", "text": {"type": "plain_text", "text": "🚨 dbt Data Quality Alert"}},
             {
                 "type": "section",
                 "fields": [  # Two-column layout for key information
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*DAG:* {dag_id}"
-                    },
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Task:* {task_instance.task_id}"
-                    },
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Execution Date:* {execution_date}"
-                    },
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Status:* Failed ❌"
-                    }
-                ]
+                    {"type": "mrkdwn", "text": f"*DAG:* {dag_id}"},
+                    {"type": "mrkdwn", "text": f"*Task:* {task_instance.task_id}"},
+                    {"type": "mrkdwn", "text": f"*Execution Date:* {execution_date}"},
+                    {"type": "mrkdwn", "text": "*Status:* Failed ❌"},
+                ],
             },
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
                     "text": """Data quality tests have failed in the warehouse pipeline.
-                    Please check the Airflow logs for detailed error information."""
-                }
+                    Please check the Airflow logs for detailed error information.""",
+                },
             },
             {
                 "type": "actions",
                 "elements": [
                     {
                         "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "text": "View in Airflow"
-                        },
+                        "text": {"type": "plain_text", "text": "View in Airflow"},
                         "url": (
                             f"https://clpqv4fx901t601k2zd9ykz3i.astronomer.run/"
                             f"dy4j071b/dags/{dag_id}/grid"
-                        )
+                        ),
                     }
-                ]
-            }
-        ]
+                ],
+            },
+        ],
     }
 
     # Attempt to send notification with error handling
@@ -157,8 +134,8 @@ def send_slack_notification(**kwargs) -> None:
         response = requests.post(
             SLACK_WEBHOOK_URL,
             data=json.dumps(message),
-            headers={'Content-Type': 'application/json'},
-            timeout=30
+            headers={"Content-Type": "application/json"},
+            timeout=30,
         )
         response.raise_for_status()  # Raise exception for HTTP errors
         print("Slack notification sent successfully")
@@ -189,8 +166,8 @@ def send_success_notification(**kwargs) -> None:
         return
 
     # Extract execution context from kwargs
-    dag_id = kwargs['dag'].dag_id
-    execution_date = kwargs['execution_date']
+    dag_id = kwargs["dag"].dag_id
+    execution_date = kwargs["execution_date"]
 
     # Build success notification with positive messaging
     message = {
@@ -198,34 +175,25 @@ def send_success_notification(**kwargs) -> None:
         "blocks": [
             {
                 "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": "✅ Warehouse Pipeline Success"
-                }
+                "text": {"type": "plain_text", "text": "✅ Warehouse Pipeline Success"},
             },
             {
                 "type": "section",
                 "fields": [
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*DAG:* {dag_id}"
-                    },
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Execution Date:* {execution_date}"
-                    }
-                ]
+                    {"type": "mrkdwn", "text": f"*DAG:* {dag_id}"},
+                    {"type": "mrkdwn", "text": f"*Execution Date:* {execution_date}"},
+                ],
             },
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": ("🎉 All models built, "
-                             "tests passed, "
-                             "and documentation updated successfully!")
-                }
-            }
-        ]
+                    "text": (
+                        "🎉 All models built, tests passed, and documentation updated successfully!"
+                    ),
+                },
+            },
+        ],
     }
 
     # Send success notification with error handling
@@ -233,8 +201,8 @@ def send_success_notification(**kwargs) -> None:
         requests.post(
             SLACK_WEBHOOK_URL,
             data=json.dumps(message),
-            headers={'Content-Type': 'application/json'},
-            timeout=30
+            headers={"Content-Type": "application/json"},
+            timeout=30,
         )
     except (requests.RequestException, ValueError) as e:
         # Log error but don't fail - notifications are supplementary
@@ -243,15 +211,15 @@ def send_success_notification(**kwargs) -> None:
 
 # DAG Configuration with Enhanced Error Handling and Monitoring
 @dag(
-    dag_id='warehouse_dag_update',  # Unique identifier for this manual update pipeline
+    dag_id="warehouse_dag_update",  # Unique identifier for this manual update pipeline
     start_date=datetime(2023, 12, 11),  # Initial DAG execution date
     schedule=None,  # Manual execution only - no automatic scheduling
     catchup=False,  # Don't run historical instances on deployment
-    tags=['loom_warehouse', 'enhanced', 'manual', 'full_refresh', 'update'],  # Organization tags
+    tags=["loom_warehouse", "enhanced", "manual", "full_refresh", "update"],  # Organization tags
     default_args=DEFAULT_ARGS,  # Apply retry and timeout settings to all tasks
     description="Enhanced data warehouse pipeline for manual execution with full refresh. "
-                "Runs dev first, then prod with comprehensive monitoring, "
-                "testing, documentation generation, and Slack notifications.",
+    "Runs dev first, then prod with comprehensive monitoring, "
+    "testing, documentation generation, and Slack notifications.",
     max_active_runs=1,  # Prevent overlapping DAG executions
     doc_md=__doc__,  # Use module docstring for DAG documentation
 )
@@ -264,8 +232,8 @@ def enhanced_warehouse_dag():
     The pipeline runs dev environment first, then prod, both with full refresh.
 
     Task Flow Architecture:
-    compile_dbt_dev → build_dev_full_refresh → test_dev_quality → 
-    compile_dbt_prod → build_prod_full_refresh → test_prod_quality → 
+    compile_dbt_dev → build_dev_full_refresh → test_dev_quality →
+    compile_dbt_prod → build_prod_full_refresh → test_prod_quality →
     [notify_test_failure | generate_docs] → notify_success → cleanup
 
     The pipeline implements conditional branching:
@@ -278,7 +246,7 @@ def enhanced_warehouse_dag():
 
     # Step 1: Compile and validate dbt project for dev environment
     compile_dbt_dev = BashOperator(
-        task_id='compile_dbt_dev',
+        task_id="compile_dbt_dev",
         bash_command=f'cd {DBT_ROOT_PATH} && dbt compile --target dev --profiles-dir "$DBT_PROFILES_DIR" --no-version-check',
         doc_md="""
         **dbt Project Compilation & Validation (Dev Environment)**
@@ -298,13 +266,13 @@ def enhanced_warehouse_dag():
 
     # Step 2: Build all models in dev with full refresh
     build_dev_full_refresh = BashOperator(
-        task_id='build_dev_full_refresh',
+        task_id="build_dev_full_refresh",
         bash_command=f'cd {DBT_ROOT_PATH} && dbt build --target dev --profiles-dir "$DBT_PROFILES_DIR" --full-refresh --no-version-check',
         doc_md="""
         **Complete Dev Warehouse Build with Full Refresh**
 
         Executes full dbt build workflow in dev environment with full refresh:
-        - **Seeds**: Reloads all CSV reference data 
+        - **Seeds**: Reloads all CSV reference data
         - **Models**: Rebuilds ALL models from scratch (no incremental)
         - **Snapshots**: Recreates slowly changing dimension tables
         - **Full Refresh**: Drops and recreates all tables/views
@@ -316,7 +284,7 @@ def enhanced_warehouse_dag():
 
     # Step 3: Execute comprehensive data quality testing in dev
     test_dev_quality = BashOperator(
-        task_id='test_dev_quality',
+        task_id="test_dev_quality",
         bash_command=f'cd {DBT_ROOT_PATH} && dbt test --target dev --profiles-dir "$DBT_PROFILES_DIR" --no-version-check',
         doc_md="""
         **Dev Environment Data Quality Testing**
@@ -333,7 +301,7 @@ def enhanced_warehouse_dag():
 
     # Step 4: Compile and validate dbt project for prod environment
     compile_dbt_prod = BashOperator(
-        task_id='compile_dbt_prod',
+        task_id="compile_dbt_prod",
         bash_command=f'cd {DBT_ROOT_PATH} && dbt compile --target prod --profiles-dir "$DBT_PROFILES_DIR" --no-version-check',
         doc_md="""
         **dbt Project Compilation & Validation (Prod Environment)**
@@ -350,13 +318,13 @@ def enhanced_warehouse_dag():
 
     # Step 5: Build all models in prod with full refresh
     build_prod_full_refresh = BashOperator(
-        task_id='build_prod_full_refresh',
+        task_id="build_prod_full_refresh",
         bash_command=f'cd {DBT_ROOT_PATH} && dbt build --target prod --profiles-dir "$DBT_PROFILES_DIR" --full-refresh --no-version-check',
         doc_md="""
         **Complete Prod Warehouse Build with Full Refresh**
 
         Executes full dbt build workflow in prod environment with full refresh:
-        - **Seeds**: Reloads all CSV reference data 
+        - **Seeds**: Reloads all CSV reference data
         - **Models**: Rebuilds ALL models from scratch (no incremental)
         - **Snapshots**: Recreates slowly changing dimension tables
         - **Full Refresh**: Drops and recreates all tables/views
@@ -368,7 +336,7 @@ def enhanced_warehouse_dag():
 
     # Step 6: Execute comprehensive data quality testing in prod
     test_prod_quality = BashOperator(
-        task_id='test_prod_quality',
+        task_id="test_prod_quality",
         bash_command=f'cd {DBT_ROOT_PATH} && dbt test --target prod --profiles-dir "$DBT_PROFILES_DIR" --no-version-check',
         # Add failure callback for immediate Slack notification
         on_failure_callback=send_slack_notification,
@@ -388,7 +356,7 @@ def enhanced_warehouse_dag():
 
     # Step 7: Send immediate Slack notification on test failure
     notify_test_failure = PythonOperator(
-        task_id='notify_test_failure',
+        task_id="notify_test_failure",
         python_callable=send_slack_notification,
         trigger_rule=TriggerRule.ONE_FAILED,  # Only run if upstream task failed
         # Context is automatically provided in Airflow 2.0+
@@ -408,7 +376,7 @@ def enhanced_warehouse_dag():
 
     # Step 8: Generate and publish documentation (only if tests pass)
     generate_docs = BashOperator(
-        task_id='generate_docs',
+        task_id="generate_docs",
         bash_command=f'cd {DBT_ROOT_PATH} && dbt docs generate --target prod --profiles-dir "$DBT_PROFILES_DIR" --no-version-check',
         trigger_rule=TriggerRule.NONE_FAILED,  # Only run if no upstream failures
         doc_md="""
@@ -427,7 +395,7 @@ def enhanced_warehouse_dag():
 
     # Step 9: Send success notification for complete pipeline success
     notify_success = PythonOperator(
-        task_id='notify_success',
+        task_id="notify_success",
         python_callable=send_success_notification,
         trigger_rule=TriggerRule.NONE_FAILED,  # Only run if everything succeeded
         # Context is automatically provided in Airflow 2.0+
@@ -447,7 +415,7 @@ def enhanced_warehouse_dag():
 
     # Step 10: Cleanup task that always runs for resource management
     cleanup = EmptyOperator(
-        task_id='cleanup',
+        task_id="cleanup",
         # Run regardless of upstream status
         trigger_rule=TriggerRule.NONE_FAILED_MIN_ONE_SUCCESS,
         doc_md="""
@@ -467,7 +435,7 @@ def enhanced_warehouse_dag():
     # Define task dependencies for dev-first, then prod workflow
     # Dev environment workflow
     compile_dbt_dev >> build_dev_full_refresh >> test_dev_quality
-    
+
     # Prod environment workflow (after dev success)
     test_dev_quality >> compile_dbt_prod >> build_prod_full_refresh >> test_prod_quality
 

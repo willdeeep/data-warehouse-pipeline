@@ -9,10 +9,10 @@ Tests cover:
 - Slack notification functionality
 """
 
-from datetime import datetime, timedelta
-from unittest.mock import Mock, patch
 import os
 import sys
+from datetime import datetime, timedelta
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -25,10 +25,11 @@ if DAGS_DIR not in sys.path:
 try:
     import warehouse_dag as wh_dag_module  # Import the module itself
     from warehouse_dag import (
+        get_dbt_task_metrics,
         send_slack_notification,
         send_success_notification,
-        get_dbt_task_metrics
     )
+
     WAREHOUSE_DAG_AVAILABLE = True
 except ImportError as e:
     # Fallback for when running in different environments
@@ -53,7 +54,9 @@ class TestWarehouseDag:
             self.dag = dag_bag.dags.get("warehouse_dag_update") or dag_bag.dags.get("warehouse_dag")
             if not self.dag:
                 # Fallback to get_dag for local development
-                self.dag = dag_bag.get_dag("warehouse_dag_update") or dag_bag.get_dag("warehouse_dag")
+                self.dag = dag_bag.get_dag("warehouse_dag_update") or dag_bag.get_dag(
+                    "warehouse_dag"
+                )
         except Exception:
             self.dag = None
 
@@ -70,10 +73,12 @@ class TestWarehouseDag:
         """Test DAG configuration and default arguments."""
         if self.dag is None:
             pytest.skip("warehouse_dag not available - check DAG imports")
-        
+
         # Test schedule - warehouse_dag_update is manual execution only
-        # Use schedule_interval for Airflow 2.x compatibility  
-        schedule_attr = getattr(self.dag, 'schedule', None) or getattr(self.dag, 'schedule_interval', None)
+        # Use schedule_interval for Airflow 2.x compatibility
+        schedule_attr = getattr(self.dag, "schedule", None) or getattr(
+            self.dag, "schedule_interval", None
+        )
         assert schedule_attr is None  # Manual execution only
 
         # Test default args - the actual DAG uses a different structure
@@ -96,7 +101,7 @@ class TestWarehouseDag:
         """Test that DAG has appropriate tags."""
         if self.dag is None:
             pytest.skip("warehouse_dag not available - check DAG imports")
-        
+
         # Update DAG has different tags: ['loom_warehouse', 'enhanced', 'manual', 'full_refresh', 'update']
         if self.dag.dag_id == "warehouse_dag_update":
             expected_tags = {"loom_warehouse", "enhanced", "manual", "full_refresh", "update"}
@@ -104,13 +109,13 @@ class TestWarehouseDag:
             expected_tags = {"loom_warehouse", "dbt_task_group"}
         assert set(self.dag.tags) >= expected_tags
 
-    @pytest.mark.unit  
+    @pytest.mark.unit
     @pytest.mark.ci_skip  # Skip in CI due to potential DB access in task counting
     def test_task_count(self):
         """Test that all expected tasks are present."""
         if self.dag is None:
             pytest.skip("warehouse_dag not available - check DAG imports")
-        
+
         # Update DAG has fewer tasks (manual workflow), original has many dbt tasks
         if self.dag.dag_id == "warehouse_dag_update":
             # Update DAG has about 10 tasks (dev/prod workflow)
@@ -125,7 +130,7 @@ class TestWarehouseDag:
         """Test critical task dependencies."""
         if self.dag is None:
             pytest.skip("warehouse_dag not available - check DAG imports")
-            
+
         task_dict = {task.task_id: task for task in self.dag.tasks}
 
         # Update DAG has different task structure
@@ -149,16 +154,17 @@ class TestWarehouseDag:
         # Only run this test if we have a valid DagBag
         if self.dag_bag is None:
             pytest.skip("DagBag not available")
-        
-        import_errors = getattr(self.dag_bag, 'import_errors', {})
+
+        import_errors = getattr(self.dag_bag, "import_errors", {})
         if import_errors:
             # In CI, we might have import errors due to missing dependencies
             # Log them but don't fail the test
             import os
+
             if os.getenv("CI") == "true":
                 print(f"Import errors in CI (expected): {import_errors}")
                 pytest.skip("Import errors expected in CI environment")
-        
+
         assert len(import_errors) == 0, f"DAG import errors: {import_errors}"
 
     @pytest.mark.dbt
@@ -167,10 +173,10 @@ class TestWarehouseDag:
         """Test that dbt task group is properly configured."""
         if self.dag is None:
             pytest.skip("warehouse_dag not available - check DAG imports")
-        
+
         # Look for dbt operations task group
         dbt_tasks = [t for t in self.dag.tasks if "dbt" in t.task_id.lower()]
-        
+
         # Update DAG has fewer dbt tasks (manual workflow)
         if self.dag.dag_id == "warehouse_dag_update":
             assert len(dbt_tasks) >= 2  # Should have compile/build tasks
@@ -206,9 +212,9 @@ class TestSlackNotifications:
 
         # Create mock context like Airflow would provide
         mock_context = {
-            'task_instance': Mock(),
-            'dag': Mock(dag_id='test_dag'),
-            'execution_date': datetime.now()
+            "task_instance": Mock(),
+            "dag": Mock(dag_id="test_dag"),
+            "execution_date": datetime.now(),
         }
 
         # Test the function with proper kwargs
@@ -234,9 +240,9 @@ class TestSlackNotifications:
 
         # Create mock context
         mock_context = {
-            'task_instance': Mock(),
-            'dag': Mock(dag_id='test_dag'),
-            'execution_date': datetime.now()
+            "task_instance": Mock(),
+            "dag": Mock(dag_id="test_dag"),
+            "execution_date": datetime.now(),
         }
 
         # Test the function - it should handle the error gracefully
@@ -254,9 +260,9 @@ class TestSlackNotifications:
 
         # Create mock context
         mock_context = {
-            'task_instance': Mock(),
-            'dag': Mock(dag_id='test_dag'),
-            'execution_date': datetime.now()
+            "task_instance": Mock(),
+            "dag": Mock(dag_id="test_dag"),
+            "execution_date": datetime.now(),
         }
 
         # Test the function - should return early without making requests
@@ -279,14 +285,14 @@ class TestSlackNotifications:
             "total_tasks": 25,
             "success_rate": 100.0,
             "models_built": 18,
-            "tests_passed": 7
+            "tests_passed": 7,
         }
 
         # Create mock context
         mock_context = {
-            'task_instance': Mock(),
-            'dag': Mock(dag_id='test_dag'),
-            'execution_date': datetime.now()
+            "task_instance": Mock(),
+            "dag": Mock(dag_id="test_dag"),
+            "execution_date": datetime.now(),
         }
 
         # Call success notification - just verify it doesn't crash
@@ -326,8 +332,7 @@ class TestCustomOperators:
         mock_ti3.state = "success"
 
         # Set up mock return value
-        mock_dag_run.get_task_instances.return_value = [
-            mock_ti1, mock_ti2, mock_ti3]
+        mock_dag_run.get_task_instances.return_value = [mock_ti1, mock_ti2, mock_ti3]
 
         # Create context
         context = {"dag_run": mock_dag_run}
@@ -355,7 +360,7 @@ class TestDagIntegration:
         """Test that DAG can be triggered without errors."""
         # Use dag_bag.dags directly instead of get_dag to avoid DB query
         dag = dag_bag.dags.get("warehouse_dag_update") or dag_bag.dags.get("warehouse_dag")
-        
+
         if not dag:
             pytest.skip("warehouse_dag not found in dag_bag")
 
@@ -368,17 +373,14 @@ class TestDagIntegration:
             dag_id=dag.dag_id,
             run_id="test_run",
             run_type=DagRunType.MANUAL,
-            start_date=datetime.now()
+            start_date=datetime.now(),
         )
 
         assert dag_run.dag_id in ["warehouse_dag_update", "warehouse_dag"]
 
     @pytest.mark.slow
     @patch("warehouse_dag.DbtTaskGroup")
-    def test_dbt_task_group_creation(
-            self,
-            mock_dbt_task_group,
-            temp_dbt_project):
+    def test_dbt_task_group_creation(self, mock_dbt_task_group, temp_dbt_project):
         """Test dbt task group creation with mocked dbt."""
         # Mock the DbtTaskGroup creation
         mock_instance = Mock()

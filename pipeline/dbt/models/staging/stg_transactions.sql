@@ -38,12 +38,12 @@ ROW DEFINITION:
 
 
 WITH cleaned_transactions AS (
-    SELECT 
+    SELECT
         -- Original source columns with SAFE_CAST for data types
         date,
         user_cookie_id,
         -- Clean and cast user_crm_id with better handling
-        CASE 
+        CASE
             WHEN user_crm_id IS NULL OR TRIM(user_crm_id) = '' THEN NULL
             WHEN REGEXP_CONTAINS(TRIM(user_crm_id), r'^[0-9]+$') THEN SAFE_CAST(user_crm_id AS INTEGER)
             ELSE NULL  -- Invalid non-numeric values become NULL
@@ -54,11 +54,11 @@ WITH cleaned_transactions AS (
         SAFE_CAST(transaction_revenue as FLOAT64) as transaction_revenue,
         SAFE_CAST(transaction_shipping as FLOAT64) as transaction_shipping,
         SAFE_CAST(transaction_total as FLOAT64) as transaction_total,
-        
+
         -- Add metadata
         CURRENT_TIMESTAMP as dbt_updated_at,
         CURRENT_DATE as dbt_valid_from
-        
+
     FROM {{ source('loom_sync', 'transactions') }}
     WHERE date IS NOT NULL
 )

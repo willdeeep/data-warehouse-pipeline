@@ -5,7 +5,7 @@ MODEL: stg_product_costs
 ===================================================================================
 
 PURPOSE:
-    Staging model for product cost data used in margin analysis and 
+    Staging model for product cost data used in margin analysis and
     profitability calculations.
 
 SOURCE:
@@ -43,14 +43,14 @@ WITH cleaned_product_costs AS (
     SELECT
         -- Primary key
         SAFE_CAST(item_id as INTEGER) as product_id,  -- Normalize to product_id
-        
+
         -- Cost validation and cleaning
         SAFE_CAST(cost_of_item as FLOAT64) as product_cost,  -- Normalize to product_cost
-        
+
         -- Add metadata
         CURRENT_TIMESTAMP as dbt_updated_at,
         CURRENT_DATE as dbt_valid_from
-        
+
     FROM {{ source('loom_sync', 'product_costs') }}
     WHERE item_id IS NOT NULL
       AND cost_of_item IS NOT NULL

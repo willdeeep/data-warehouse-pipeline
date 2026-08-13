@@ -9,17 +9,18 @@ This module contains tests for:
 - BigQuery quota and rate limiting
 """
 
-from datetime import datetime, timedelta
-from unittest.mock import patch, Mock
+import gc
 import statistics
 import threading
 import time
+from datetime import datetime, timedelta
+from unittest.mock import Mock, patch
 
-import gc
 import pytest
 
 try:
     from google.cloud import bigquery
+
     BIGQUERY_AVAILABLE = True
 except ImportError:
     BIGQUERY_AVAILABLE = False
@@ -70,10 +71,11 @@ class TestBigQueryPerformance:
         # Skip if BigQuery is not available
         if not BIGQUERY_AVAILABLE:
             pytest.skip("google-cloud-bigquery not available")
-            
+
         # Create mock manually since the fixture approach has import issues
         try:
             import google.cloud.bigquery
+
             with patch("google.cloud.bigquery.Client") as mock_client:
                 mock_job = Mock()
                 mock_job.ended = datetime.now()
@@ -116,7 +118,7 @@ class TestMemoryUsage:
 
         # Use dag_bag.dags directly instead of get_dag to avoid DB query
         warehouse_dag = dag_bag.dags.get("warehouse_dag")
-        
+
         if not warehouse_dag:
             pytest.skip("warehouse_dag not found in dag_bag")
 
@@ -159,7 +161,7 @@ class TestMemoryUsage:
 
         # Verify no errors occurred
         assert len(errors) == 0, f"Errors occurred: {errors}"
-        
+
         # Verify all accesses completed
         assert len(results) == 5, f"Expected 5 completed accesses, got {len(results)}"
 
@@ -177,8 +179,7 @@ class TestDataVolumeHandling:
         # Simulate large dataset metadata
         simulated_rows = 1_000_000
         simulated_columns = 50
-        estimated_size_mb = (
-            simulated_rows * simulated_columns * 8) / (1024 * 1024)
+        estimated_size_mb = (simulated_rows * simulated_columns * 8) / (1024 * 1024)
 
         # Test that our calculations are reasonable
         assert estimated_size_mb > 0
@@ -191,7 +192,7 @@ class TestDataVolumeHandling:
         batch_sizes = {
             "staging_insert": 10_000,
             "intermediate_transform": 50_000,
-            "mart_aggregation": 100_000
+            "mart_aggregation": 100_000,
         }
 
         for operation, batch_size in batch_sizes.items():
@@ -252,8 +253,7 @@ class TestRateLimiting:
             thread.join(timeout=5)
 
         # Verify all requests completed
-        assert len(
-            results) == 3, f"Expected 3 completed requests, got {len(results)}"
+        assert len(results) == 3, f"Expected 3 completed requests, got {len(results)}"
 
 
 @pytest.mark.benchmark
@@ -265,10 +265,10 @@ class TestBenchmarks:
         """Benchmark DAG loading time."""
         # Use dag_bag.dags directly instead of get_dag to avoid DB query
         dag = dag_bag.dags.get("warehouse_dag")
-        
+
         if not dag:
             pytest.skip("warehouse_dag not found in dag_bag")
-            
+
         iterations = 3
         load_times = []
 
