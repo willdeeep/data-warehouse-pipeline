@@ -19,7 +19,7 @@ dependencies = [
 dev = ["pytest>=8", "pytest-cov>=5"]
 
 [project.scripts]
-loom-datagen = "loom_datagen.cli:app"
+loom-datagen = "loom_datagen.application.cli:app"
 
 [build-system]
 requires = ["hatchling", "uv-dynamic-versioning"]

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from loom_datagen.schema import SCHEMAS
+from loom_datagen.infrastructure.schema import SCHEMAS
 
 
 def test_every_column_has_a_nonempty_description():

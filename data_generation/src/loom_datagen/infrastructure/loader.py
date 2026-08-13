@@ -5,7 +5,7 @@ from __future__ import annotations
 import pandas as pd
 from google.cloud import bigquery
 
-from .schema import SCHEMAS
+from loom_datagen.infrastructure.schema import SCHEMAS
 
 
 def load_frames(frames: dict[str, pd.DataFrame], cfg) -> dict[str, int]:

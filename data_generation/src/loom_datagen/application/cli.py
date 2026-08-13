@@ -8,12 +8,13 @@ from pathlib import Path
 import typer
 import yaml
 
-from .build import build_all
-from .config import DatagenConfig
+from loom_datagen.application.build import build_all
+from loom_datagen.infrastructure.config import DatagenConfig
 
 app = typer.Typer(help="Generate synthetic Loom source data and load it into BigQuery.")
 
-_CONFIG_PATH = Path(__file__).resolve().parents[2] / "config" / "default.yaml"
+# parents[3]: application/ -> loom_datagen/ -> src/ -> data_generation/
+_CONFIG_PATH = Path(__file__).resolve().parents[3] / "config" / "default.yaml"
 
 
 def _scale_overrides(scale: str) -> dict:
@@ -42,7 +43,7 @@ def generate(scale: str = "small", dry_run: bool = False):
             typer.echo(f"{name}: {len(df)} rows")
         raise typer.Exit()
 
-    from .loader import load_frames
+    from loom_datagen.infrastructure.loader import load_frames
 
     counts = load_frames(frames, cfg)
     typer.echo(f"Loaded into {cfg.project_id}.{cfg.source_dataset}: {counts}")
@@ -51,7 +52,7 @@ def generate(scale: str = "small", dry_run: bool = False):
 @app.command()
 def validate(scale: str = "small"):
     """Query BigQuery to confirm the loaded data honours integrity + accepted values."""
-    from .validate import validate_bigquery
+    from loom_datagen.validation.validate import validate_bigquery
 
     report = validate_bigquery(_config(scale))
     typer.echo(report)
