@@ -13,10 +13,11 @@ dependencies = [
   "pydantic-settings>=2.5",
   "pyyaml>=6",
   "typer>=0.12",
+  "pandera>=0.20",  # validation/contracts.py is on the runtime import path (cli -> build -> contracts)
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "pytest-cov>=5", "import-linter>=2.0", "pytest-archon>=0.0.7", "pandera>=0.20"]
+dev = ["pytest>=8", "pytest-cov>=5", "import-linter>=2.0", "pytest-archon>=0.0.7"]
 
 [project.scripts]
 loom-datagen = "loom_datagen.application.cli:app"

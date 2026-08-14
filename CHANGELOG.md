@@ -17,6 +17,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
   Clean-Architecture layers (`domain`/`infrastructure`/`validation`/`application`), enforced by an
   import-linter `layers` contract + pytest-archon domain-isolation tests, wired into CI and the
   pre-commit gate.
+- Executable pandera data contracts for the 10 `loom_sync` tables, gating generated frames
+  pre-load with accept/reject tests (context-gap W1, #47).
 
 ### Changed
 - **datagen deps (#26):** added `pandas-gbq>=0.26.1` so `loom-datagen generate` no longer prints the

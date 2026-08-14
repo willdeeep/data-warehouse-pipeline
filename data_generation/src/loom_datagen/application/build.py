@@ -14,6 +14,7 @@ from loom_datagen.domain.sessions import build_sessions
 from loom_datagen.domain.transactions import build_transactions
 from loom_datagen.domain.users import build_users
 from loom_datagen.infrastructure.rng import make_faker, make_rng
+from loom_datagen.validation.contracts import validate_frames
 
 
 def build_all(cfg) -> dict[str, pd.DataFrame]:
@@ -28,7 +29,7 @@ def build_all(cfg) -> dict[str, pd.DataFrame]:
     returns = build_returns(cfg, rng, items)
     adspend = build_adspend(cfg, rng)
 
-    return {
+    frames = {
         "productattributes": attrs,
         "product_costs": costs,
         "product_listprices": prices,
@@ -40,3 +41,7 @@ def build_all(cfg) -> dict[str, pd.DataFrame]:
         "product_returns": returns,
         "adplatform_data": adspend,
     }
+
+    validate_frames(frames)
+
+    return frames
